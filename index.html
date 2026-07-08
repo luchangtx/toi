@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>游戏合集</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: #06080f;
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow-x: hidden;
+            color: #e0e0e0;
+        }
+
+        /* ========== 动态背景 ========== */
+        .bg-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .grid-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridDrift 20s linear infinite;
+        }
+
+        @keyframes gridDrift {
+            from { transform: translate(0, 0); }
+            to { transform: translate(60px, 60px); }
+        }
+
+        .glow-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 12s ease-in-out infinite alternate;
+        }
+        .glow-orb.a {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.25), transparent 70%);
+            top: -10%; left: -10%;
+        }
+        .glow-orb.b {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(236, 72, 153, 0.2), transparent 70%);
+            bottom: -10%; right: -10%;
+            animation-delay: -4s;
+        }
+        .glow-orb.c {
+            width: 350px; height: 350px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.15), transparent 70%);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: -8s;
+        }
+
+        @keyframes orbFloat {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, -20px) scale(1.1); }
+            100% { transform: translate(-20px, 30px) scale(0.95); }
+        }
+
+        /* ========== 主容器 ========== */
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 60px 24px 80px;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ========== 头部 ========== */
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: headerIn 1s ease-out;
+        }
+
+        @keyframes headerIn {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.35);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 6px 18px;
+            border-radius: 100px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.02);
+        }
+
+        .header h1 {
+            font-size: clamp(2.2rem, 6vw, 3.8rem);
+            font-weight: 900;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #818cf8 0%, #e879f9 40%, #34d399 80%, #818cf8 100%);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 6s ease-in-out infinite;
+            line-height: 1.2;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header p {
+            margin-top: 12px;
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.35);
+            letter-spacing: 1px;
+        }
+
+        /* ========== 卡片网格 ========== */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            flex: 1;
+        }
+
+        /* ========== 卡片 ========== */
+        .card {
+            position: relative;
+            text-decoration: none;
+            color: inherit;
+            border-radius: 20px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s;
+            display: flex;
+            flex-direction: column;
+            animation: cardIn 0.8s ease-out backwards;
+        }
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(40px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+        /* 卡片顶部渐变线 */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: 20px 20px 0 0;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        .card:hover::before { opacity: 1; }
+
+        .card:nth-child(1)::before { background: linear-gradient(90deg, #ffd700, #ff8c00); }
+        .card:nth-child(2)::before { background: linear-gradient(90deg, #d4af37, #8b6914); }
+        .card:nth-child(3)::before { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
+        .card:nth-child(4)::before { background: linear-gradient(90deg, #34d399, #10b981); }
+
+        /* 光扫效果 */
+        .card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+            transition: left 0.6s;
+            pointer-events: none;
+        }
+        .card:hover::after { left: 100%; }
+
+        .card-visual {
+            height: 160px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-visual-bg {
+            position: absolute;
+            inset: 0;
+            opacity: 0.15;
+            transition: opacity 0.4s;
+        }
+        .card:hover .card-visual-bg { opacity: 0.25; }
+
+        .card:nth-child(1) .card-visual-bg {
+            background: radial-gradient(circle at 30% 50%, #ffd700 0%, transparent 60%),
+                        radial-gradient(circle at 70% 50%, #ff8c00 0%, transparent 60%);
+        }
+        .card:nth-child(2) .card-visual-bg {
+            background: radial-gradient(circle at 30% 50%, #d4af37 0%, transparent 60%),
+                        radial-gradient(circle at 70% 50%, #ff3333 0%, transparent 60%);
+        }
+        .card:nth-child(3) .card-visual-bg {
+            background: radial-gradient(circle at 30% 50%, #60a5fa 0%, transparent 60%),
+                        radial-gradient(circle at 70% 50%, #a78bfa 0%, transparent 60%);
+        }
+        .card:nth-child(4) .card-visual-bg {
+            background: radial-gradient(circle at 30% 50%, #34d399 0%, transparent 60%),
+                        radial-gradient(circle at 70% 50%, #06b6d4 0%, transparent 60%);
+        }
+
+        .card-icon {
+            font-size: 4rem;
+            z-index: 1;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.5));
+            transition: transform 0.4s;
+        }
+        .card:hover .card-icon {
+            transform: scale(1.15) rotate(-3deg);
+        }
+
+        .card-body {
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-category {
+            font-size: 0.65rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        .card:nth-child(1) .card-category { color: #ffd700; }
+        .card:nth-child(2) .card-category { color: #d4af37; }
+        .card:nth-child(3) .card-category { color: #60a5fa; }
+        .card:nth-child(4) .card-category { color: #34d399; }
+
+        .card-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #fff;
+            line-height: 1.3;
+        }
+
+        .card-desc {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.4);
+            line-height: 1.6;
+            flex: 1;
+        }
+
+        .card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .card-tags {
+            display: flex;
+            gap: 6px;
+        }
+
+        .card-tag {
+            font-size: 0.65rem;
+            padding: 3px 10px;
+            border-radius: 100px;
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.4);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .card-arrow {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.3);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        .card:hover .card-arrow {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            transform: translateX(4px);
+        }
+
+        /* ========== 页脚 ========== */
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.2);
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        /* ========== 响应式 ========== */
+        @media (max-width: 640px) {
+            .container { padding: 40px 16px 60px; }
+            .header { margin-bottom: 40px; }
+            .cards { gap: 16px; }
+            .card-visual { height: 130px; }
+            .card-body { padding: 18px; }
+        }
+
+        /* ========== 浮动粒子 ========== */
+        .sparkle {
+            position: fixed;
+            width: 2px;
+            height: 2px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            animation: sparkleFloat linear infinite;
+        }
+
+        @keyframes sparkleFloat {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 1; transform: scale(1); }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(-10vh) scale(0); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 背景装饰 -->
+<div class="grid-overlay"></div>
+<div class="glow-orb a"></div>
+<div class="glow-orb b"></div>
+<div class="glow-orb c"></div>
+<canvas class="bg-canvas" id="bgCanvas"></canvas>
+
+<div class="container">
+    <header class="header">
+        <div class="header-tag">COLLECTION</div>
+        <h1>小游戏合集</h1>
+        <p>选择一个项目开始体验</p>
+    </header>
+
+    <div class="cards">
+        <!-- 成语消消乐 -->
+        <a href="cy.html" class="card">
+            <div class="card-visual">
+                <div class="card-visual-bg"></div>
+                <div class="card-icon">🀄</div>
+            </div>
+            <div class="card-body">
+                <div class="card-category">益智游戏</div>
+                <div class="card-title">成语消消乐</div>
+                <div class="card-desc">15 关递进挑战，从初出茅庐到成语之神。点击汉字组成四字成语，考验你的词汇量和反应速度。</div>
+                <div class="card-footer">
+                    <div class="card-tags">
+                        <span class="card-tag">15 关卡</span>
+                        <span class="card-tag">连击系统</span>
+                    </div>
+                    <div class="card-arrow">→</div>
+                </div>
+            </div>
+        </a>
+
+        <!-- 三角洲行动 -->
+        <a href="sjz.html" class="card">
+            <div class="card-visual">
+                <div class="card-visual-bg"></div>
+                <div class="card-icon">🎯</div>
+            </div>
+            <div class="card-body">
+                <div class="card-category">射击游戏</div>
+                <div class="card-title">三角洲行动</div>
+                <div class="card-desc">化身 G.T.I. 特战干员"猎鹰"，潜入敌方控制区域。虚拟摇杆操控，三种武器可选，消灭 15 名敌方士兵。</div>
+                <div class="card-footer">
+                    <div class="card-tags">
+                        <span class="card-tag">FPS</span>
+                        <span class="card-tag">全屏体验</span>
+                    </div>
+                    <div class="card-arrow">→</div>
+                </div>
+            </div>
+        </a>
+
+        <!-- 冰球计时 v1 -->
+        <a href="711.html" class="card">
+            <div class="card-visual">
+                <div class="card-visual-bg"></div>
+                <div class="card-icon">🏒</div>
+            </div>
+            <div class="card-body">
+                <div class="card-category">实用工具</div>
+                <div class="card-title">TOI 临时</div>
+                <div class="card-desc">专业冰球比赛计时与数据统计工具，支持比赛时间管理、进球统计和比赛数据记录。</div>
+                <div class="card-footer">
+                    <div class="card-tags">
+                        <span class="card-tag">计时器</span>
+                        <span class="card-tag">数据统计</span>
+                    </div>
+                    <div class="card-arrow">→</div>
+                </div>
+            </div>
+        </a>
+
+        <!-- 冰球计时 v2 -->
+        <a href="timers.html" class="card">
+            <div class="card-visual">
+                <div class="card-visual-bg"></div>
+                <div class="card-icon">⏱️</div>
+            </div>
+            <div class="card-body">
+                <div class="card-category">实用工具</div>
+                <div class="card-title">TOI SH</div>
+                <div class="card-desc">冰球比赛计时统计系统的另一版本，功能布局有所调整，适合不同使用场景。</div>
+                <div class="card-footer">
+                    <div class="card-tags">
+                        <span class="card-tag">计时器</span>
+                        <span class="card-tag">替代版本</span>
+                    </div>
+                    <div class="card-arrow">→</div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <footer class="footer">
+        BUILT WITH ❤️ — TOI PROJECT COLLECTION
+    </footer>
+</div>
+
+<script>
+    // 浮动粒子
+    (function() {
+        const count = 30;
+        for (let i = 0; i < count; i++) {
+            const el = document.createElement('div');
+            el.className = 'sparkle';
+            el.style.left = Math.random() * 100 + '%';
+            el.style.animationDuration = (12 + Math.random() * 18) + 's';
+            el.style.animationDelay = Math.random() * 20 + 's';
+            el.style.width = el.style.height = (1 + Math.random() * 2) + 'px';
+            document.body.appendChild(el);
+        }
+    })();
+
+    // Canvas 连线粒子
+    (function() {
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let w, h, dots = [];
+
+        function resize() {
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        const DOT_COUNT = 50;
+        for (let i = 0; i < DOT_COUNT; i++) {
+            dots.push({
+                x: Math.random() * w,
+                y: Math.random() * h,
+                vx: (Math.random() - 0.5) * 0.4,
+                vy: (Math.random() - 0.5) * 0.4,
+                r: Math.random() * 1.5 + 0.5
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, w, h);
+
+            dots.forEach(d => {
+                d.x += d.vx;
+                d.y += d.vy;
+                if (d.x < 0) d.x = w;
+                if (d.x > w) d.x = 0;
+                if (d.y < 0) d.y = h;
+                if (d.y > h) d.y = 0;
+
+                ctx.beginPath();
+                ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                ctx.fill();
+            });
+
+            // 连线
+            const maxDist = 150;
+            for (let i = 0; i < dots.length; i++) {
+                for (let j = i + 1; j < dots.length; j++) {
+                    const dx = dots[i].x - dots[j].x;
+                    const dy = dots[i].y - dots[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < maxDist) {
+                        ctx.beginPath();
+                        ctx.moveTo(dots[i].x, dots[i].y);
+                        ctx.lineTo(dots[j].x, dots[j].y);
+                        ctx.strokeStyle = `rgba(255,255,255,${0.04 * (1 - dist / maxDist)})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            requestAnimationFrame(draw);
+        }
+        draw();
+    })();
+
+    // 鼠标跟随光效
+    document.addEventListener('mousemove', (e) => {
+        document.querySelectorAll('.glow-orb.c')[0].style.transform =
+            `translate(${e.clientX - window.innerWidth / 2}px, ${e.clientY - window.innerHeight / 2}px)`;
+    });
+</script>
+
+</body>
+</html>
