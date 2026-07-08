@@ -522,6 +522,12 @@
 
         .start-screen.hidden { opacity: 0; pointer-events: none; }
 
+        /* 关卡选择界面不居中，用 flex-start 保证可滚动 */
+        #levelSelectScreen {
+            justify-content: flex-start;
+            padding-top: calc(env(safe-area-inset-top, 0px) + 40px);
+        }
+
         .start-title {
             font-size: 3rem;
             color: #ffd700;
@@ -998,7 +1004,6 @@
         gameState.shufflesUsed = 0;
         gameState.isPlaying = true;
 
-        const config = levelConfig.find(c => c.id === levelId);
         gameState.currentConfig = config;
         gameState.timeLeft = config.time;
 
