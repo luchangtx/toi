@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>成语消消乐 - 闯关版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: linear-gradient(135deg, #0d0d1a 0%, #0a1628 50%, #06122e 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(255, 215, 0, 0.25);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
+        }
+
+        .game-container {
+            position: relative;
+            z-index: 1;
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 15px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .title {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 4px 8px rgba(0,0,0,0.5);
+            letter-spacing: 6px;
+            margin-bottom: 5px;
+            animation: titleGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            from { text-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 4px 8px rgba(0,0,0,0.5); }
+            to { text-shadow: 0 0 35px rgba(255, 215, 0, 0.9), 0 0 70px rgba(255, 215, 0, 0.3), 0 4px 8px rgba(0,0,0,0.5); }
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+        }
+
+        /* 关卡进度 */
+        .level-progress {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .level-badge {
+            background: linear-gradient(145deg, #ffd700, #ff8c00);
+            color: #0d0d1a;
+            font-weight: 900;
+            font-size: 0.9rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            white-space: nowrap;
+            box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .level-bar-container {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .level-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #ff8c00);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .level-info {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+
+        /* 信息面板 */
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 12px;
+            padding: 10px 5px;
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 4px;
+            letter-spacing: 1px;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #ffd700;
+        }
+
+        .timer { color: #ff6b6b; }
+        .timer.warning { animation: pulse 0.5s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* 难度标签 */
+        .difficulty-tags {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tag {
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid;
+            font-weight: 700;
+        }
+
+        .tag-easy { color: #4caf50; border-color: rgba(76, 175, 80, 0.5); background: rgba(76, 175, 80, 0.1); }
+        .tag-normal { color: #ff9800; border-color: rgba(255, 152, 0, 0.5); background: rgba(255, 152, 0, 0.1); }
+        .tag-hard { color: #f44336; border-color: rgba(244, 67, 54, 0.5); background: rgba(244, 67, 54, 0.1); }
+        .tag-extreme { color: #e91e63; border-color: rgba(233, 30, 99, 0.5); background: rgba(233, 30, 99, 0.1); }
+
+        /* 成语显示区 */
+        .idiom-display {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 12px;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .idiom-display::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(255, 215, 0, 0.03), transparent 70%);
+            pointer-events: none;
+        }
+
+        .idiom-char {
+            width: 48px;
+            height: 48px;
+            line-height: 48px;
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.12), rgba(255, 215, 0, 0.04));
+            border: 2px solid rgba(255, 215, 0, 0.35);
+            border-radius: 10px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #ffd700;
+            text-align: center;
+            animation: charPop 0.3s ease-out;
+            position: relative;
+            z-index: 1;
+        }
+
+        .idiom-char.empty {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.08);
+            color: transparent;
+        }
+
+        @keyframes charPop {
+            0% { transform: scale(0); }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* 游戏板 */
+        .game-board {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.12);
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .grid {
+            display: grid;
+            gap: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card {
+            aspect-ratio: 1;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+            border: 2px solid rgba(255, 215, 0, 0.25);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ffd700;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            transition: left 0.5s;
+        }
+
+        .card:hover::before { left: 100%; }
+        .card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 215, 0, 0.5);
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.15);
+        }
+
+        .card.selected {
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.08));
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.35), inset 0 0 10px rgba(255, 215, 0, 0.08);
+            transform: scale(1.05);
+        }
+
+        .card.matched { animation: matchSuccess 0.6s ease-out forwards; }
+        .card.wrong { animation: matchWrong 0.4s ease-in-out; }
+        .card.removed { animation: removeCard 0.5s ease-out forwards; }
+        .card.locked {
+            background: linear-gradient(145deg, rgba(100, 100, 100, 0.1), rgba(80, 80, 80, 0.05));
+            border-color: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+        }
+        .card.locked::after {
+            content: '🔒';
+            position: absolute;
+            font-size: 0.8rem;
+            top: 2px;
+            right: 2px;
+        }
+
+        @keyframes matchSuccess {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); background: rgba(76, 175, 80, 0.25); border-color: #4caf50; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        @keyframes matchWrong {
+            0%, 100% { transform: translateX(0); background: rgba(244, 67, 54, 0.15); border-color: #f44336; }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        @keyframes removeCard {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        /* 提示区 */
+        .hint-area {
+            text-align: center;
+            margin-bottom: 12px;
+            min-height: 28px;
+        }
+
+        .hint-text {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            animation: fadeIn 0.3s;
+        }
+
+        .hint-text.success { color: #4caf50; }
+        .hint-text.error { color: #ff6b6b; }
+        .hint-text.warning { color: #ff9800; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 控制按钮 */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .btn {
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 12px;
+            padding: 12px 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #ffd700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Noto Serif SC', serif;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.25), rgba(255, 215, 0, 0.1));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.15);
+        }
+
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+        .btn-primary {
+            background: linear-gradient(145deg, #ffd700, #ff8c00);
+            color: #0d0d1a;
+            border: none;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.5);
+        }
+
+        /* 弹窗 */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+
+        .modal {
+            background: linear-gradient(145deg, #0d0d1a, #0a1628);
+            border: 2px solid rgba(255, 215, 0, 0.25);
+            border-radius: 24px;
+            padding: 35px 30px;
+            text-align: center;
+            max-width: 360px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal { transform: scale(1); }
+
+        .modal-title {
+            font-size: 1.8rem;
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-weight: 900;
+        }
+
+        .modal-text {
+            color: rgba(255, 255, 255, 0.75);
+            margin-bottom: 8px;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .modal-score {
+            font-size: 3.5rem;
+            color: #ffd700;
+            font-weight: 900;
+            margin: 15px 0;
+            text-shadow: 0 0 25px rgba(255, 215, 0, 0.5);
+        }
+
+        .star-rating { margin: 15px 0; font-size: 2.5rem; }
+
+        .star {
+            display: inline-block;
+            color: #ffd700;
+            animation: starPop 0.5s ease-out backwards;
+        }
+        .star.empty { color: rgba(255, 255, 255, 0.15); }
+
+        @keyframes starPop {
+            0% { transform: scale(0) rotate(-180deg); }
+            100% { transform: scale(1) rotate(0); }
+        }
+
+        /* 连击特效 */
+        .combo {
+            position: fixed;
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 0 40px rgba(255, 215, 0, 0.9);
+            pointer-events: none;
+            z-index: 500;
+            opacity: 0;
+        }
+        .combo.show { animation: comboAnim 1.2s ease-out forwards; }
+
+        @keyframes comboAnim {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
+            100% { opacity: 0; transform: translate(-50%, -90%) scale(1); }
+        }
+
+        /* 开始界面 */
+        .start-screen {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #0d0d1a 0%, #0a1628 50%, #06122e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            transition: opacity 0.5s;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .start-screen.hidden { opacity: 0; pointer-events: none; }
+
+        .start-title {
+            font-size: 3rem;
+            color: #ffd700;
+            font-weight: 900;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            margin-bottom: 10px;
+            letter-spacing: 8px;
+        }
+
+        .start-subtitle {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+            letter-spacing: 3px;
+        }
+
+        .start-btn {
+            font-size: 1.2rem;
+            padding: 16px 50px;
+            animation: breathe 2s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3); }
+            50% { box-shadow: 0 4px 30px rgba(255, 215, 0, 0.6); }
+        }
+
+        .difficulty-chart {
+            margin-top: 30px;
+            width: 100%;
+            max-width: 340px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .difficulty-chart h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .diff-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .diff-bar {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .diff-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        /* 关卡选择 */
+        .level-select {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-top: 20px;
+            max-width: 340px;
+        }
+
+        .level-btn {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ffd700;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .level-btn:hover {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: rgba(255, 215, 0, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .level-btn.locked {
+            opacity: 0.3;
+            cursor: not-allowed;
+            color: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .level-btn.completed {
+            background: rgba(76, 175, 80, 0.15);
+            border-color: rgba(76, 175, 80, 0.4);
+        }
+
+        .level-btn .stars {
+            font-size: 0.6rem;
+            margin-top: 2px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 400px) {
+            .title { font-size: 1.8rem; letter-spacing: 3px; }
+            .card { font-size: 1.3rem; }
+            .idiom-char { width: 40px; height: 40px; line-height: 40px; font-size: 1.1rem; }
+            .info-panel { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* 倒计时条 */
+        .time-bar-container {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .time-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #ffd700, #ff6b6b);
+            border-radius: 2px;
+            transition: width 1s linear;
+        }
+
+        /* 解锁提示 */
+        .unlock-notice {
+            position: fixed;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.1));
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            border-radius: 16px;
+            padding: 20px 30px;
+            color: #ffd700;
+            font-size: 1.1rem;
+            font-weight: 700;
+            z-index: 600;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.5s;
+            text-align: center;
+        }
+
+        .unlock-notice.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px);
+        }
+    </style>
+</head>
+<body>
+<div class="particles" id="particles"></div>
+
+<!-- 开始界面 -->
+<div class="start-screen" id="startScreen">
+    <div class="start-title">成语消消乐</div>
+    <div class="start-subtitle">闯关挑战版</div>
+    <button class="btn btn-primary start-btn" onclick="showLevelSelect()">选择关卡</button>
+
+    <div class="difficulty-chart">
+        <h3>📊 难度递进表</h3>
+        <div class="diff-row">
+            <span style="width: 50px;">第1-3关</span>
+            <div class="diff-bar"><div class="diff-fill" style="width: 20%; background: #4caf50;"></div></div>
+            <span>入门</span>
+        </div>
+        <div class="diff-row">
+            <span style="width: 50px;">第4-6关</span>
+            <div class="diff-bar"><div class="diff-fill" style="width: 40%; background: #8bc34a;"></div></div>
+            <span>简单</span>
+        </div>
+        <div class="diff-row">
+            <span style="width: 50px;">第7-9关</span>
+            <div class="diff-bar"><div class="diff-fill" style="width: 60%; background: #ff9800;"></div></div>
+            <span>中等</span>
+        </div>
+        <div class="diff-row">
+            <span style="width: 50px;">第10-12关</span>
+            <div class="diff-bar"><div class="diff-fill" style="width: 80%; background: #ff5722;"></div></div>
+            <span>困难</span>
+        </div>
+        <div class="diff-row">
+            <span style="width: 50px;">第13-15关</span>
+            <div class="diff-bar"><div class="diff-fill" style="width: 100%; background: #e91e63;"></div></div>
+            <span>地狱</span>
+        </div>
+    </div>
+</div>
+
+<!-- 关卡选择 -->
+<div class="start-screen hidden" id="levelSelectScreen">
+    <div class="start-title" style="font-size: 2rem;">选择关卡</div>
+    <div class="level-select" id="levelSelect"></div>
+    <button class="btn btn-secondary" onclick="backToStart()" style="margin-top: 20px;">返回</button>
+</div>
+
+<!-- 主游戏 -->
+<div class="game-container" id="gameContainer" style="display: none;">
+    <div class="header">
+        <div class="title">成语消消乐</div>
+        <div class="subtitle">第 <span id="levelNum">1</span> 关</div>
+    </div>
+
+    <div class="level-progress">
+        <div class="level-badge" id="levelBadge">第 1 关</div>
+        <div class="level-bar-container">
+            <div class="level-bar-fill" id="levelProgress" style="width: 0%"></div>
+        </div>
+        <div class="level-info" id="levelInfo">1/15</div>
+    </div>
+
+    <div class="info-panel">
+        <div class="info-item">
+            <div class="info-label">得分</div>
+            <div class="info-value" id="score">0</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">时间</div>
+            <div class="info-value timer" id="timer">120</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">连击</div>
+            <div class="info-value" id="combo">0</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">目标</div>
+            <div class="info-value" id="target">4</div>
+        </div>
+    </div>
+
+    <div class="time-bar-container">
+        <div class="time-bar-fill" id="timeBar" style="width: 100%"></div>
+    </div>
+
+    <div class="difficulty-tags" id="difficultyTags"></div>
+
+    <div class="idiom-display" id="currentIdiom">
+        <div class="idiom-char empty"></div>
+        <div class="idiom-char empty"></div>
+        <div class="idiom-char empty"></div>
+        <div class="idiom-char empty"></div>
+    </div>
+
+    <div class="game-board">
+        <div class="grid" id="grid"></div>
+    </div>
+
+    <div class="hint-area">
+        <div class="hint-text" id="hintText">点击汉字组成四字成语</div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" id="btnShuffle" onclick="shuffleBoard()">🔀 洗牌</button>
+        <button class="btn" id="btnHint" onclick="showHint()">💡 提示</button>
+        <button class="btn" onclick="resetSelection()">↩️ 撤销</button>
+    </div>
+</div>
+
+<div class="combo" id="comboEffect"></div>
+<div class="unlock-notice" id="unlockNotice"></div>
+
+<!-- 弹窗 -->
+<div class="modal-overlay" id="gameOverModal">
+    <div class="modal">
+        <div class="modal-title" id="modalTitle">游戏结束</div>
+        <div class="modal-text" id="modalText"></div>
+        <div class="modal-score" id="modalScore">0</div>
+        <div class="star-rating" id="starRating"></div>
+        <div class="modal-text" id="modalDetail"></div>
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+            <button class="btn btn-secondary" onclick="backToLevelSelect()" style="padding: 12px 25px;">关卡</button>
+            <button class="btn btn-primary" onclick="nextLevelOrRestart()" id="nextBtn" style="padding: 12px 25px;">下一关</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========== 成语数据库（按难度分级） ==========
+    const idiomEasy = [
+        '一心一意', '三心二意', '四面八方', '五光十色', '六神无主',
+        '七上八下', '九牛一毛', '十全十美', '百发百中', '千军万马',
+        '画龙点睛', '画蛇添足', '守株待兔', '亡羊补牢', '掩耳盗铃',
+        '刻舟求剑', '自相矛盾', '狐假虎威', '井底之蛙', '杯弓蛇影',
+        '指鹿为马', '纸上谈兵', '破釜沉舟', '卧薪尝胆', '负荆请罪'
+    ];
+
+    const idiomNormal = [
+        '完璧归赵', '围魏救赵', '毛遂自荐', '三顾茅庐', '草船借箭',
+        '望梅止渴', '草木皆兵', '风声鹤唳', '退避三舍', '一鸣惊人',
+        '一鼓作气', '老马识途', '如鱼得水', '胸有成竹', '手不释卷',
+        '悬梁刺股', '凿壁偷光', '囊萤映雪', '程门立雪', '孺子可教',
+        '高山流水', '阳春白雪', '下里巴人', '邯郸学步', '东施效颦'
+    ];
+
+    const idiomHard = [
+        '买椟还珠', '郑人买履', '叶公好龙', '黔驴技穷', '鹬蚌相争',
+        '螳螂捕蝉', '塞翁失马', '朝三暮四', '愚公移山', '精卫填海',
+        '夸父逐日', '女娲补天', '后羿射日', '嫦娥奔月', '牛郎织女',
+        '天衣无缝', '天花乱坠', '火树银花', '海市蜃楼', '镜花水月',
+        '风花雪月', '春华秋实', '夏雨雨人', '冬温夏清', '春暖花开'
+    ];
+
+    const idiomExtreme = [
+        '鸟语花香', '山清水秀', '风和日丽', '云淡风轻', '水落石出',
+        '柳暗花明', '峰回路转', '莺歌燕舞', '龙飞凤舞', '虎踞龙盘',
+        '鹤立鸡群', '狼吞虎咽', '鸡飞狗跳', '狼心狗肺', '虎头蛇尾',
+        '兔死狐悲', '鸟尽弓藏', '如鱼得水', '如虎添翼', '狼狈为奸',
+        '狐朋狗友', '一箭双雕', '一石二鸟', '九牛二虎', '一马当先'
+    ];
+
+    // 干扰字库
+    const distractorChars = '的了一是在不有人这中大来为上国个以时会出分其和要可而下自之年过发后作里如到能于之然得经着道自所去行家都下然无小所然天去好学就心也方多用公然';
+
+    // ========== 关卡配置 ==========
+    const levelConfig = [
+        // 第1-3关：入门（4成语，16格，4x4，120秒，无干扰）
+        { id: 1,  idioms: 2, grid: [4, 4], time: 120, distractors: 0, locked: false, name: '初出茅庐' },
+        { id: 2,  idioms: 3, grid: [4, 4], time: 100, distractors: 0, locked: false, name: '小试牛刀' },
+        { id: 3,  idioms: 4, grid: [4, 4], time: 90,  distractors: 0, locked: false, name: '渐入佳境' },
+        // 第4-6关：简单（5-6成语，20-24格，4x5/4x6，90秒，少量干扰）
+        { id: 4,  idioms: 5, grid: [4, 5], time: 90,  distractors: 2, locked: true, name: '初露锋芒' },
+        { id: 5,  idioms: 6, grid: [4, 6], time: 85,  distractors: 4, locked: true, name: '稳步前行' },
+        { id: 6,  idioms: 6, grid: [5, 5], time: 80,  distractors: 6, locked: true, name: '游刃有余' },
+        // 第7-9关：中等（7-8成语，28-32格，4x7/4x8，75秒，中等干扰）
+        { id: 7,  idioms: 7, grid: [4, 7], time: 75,  distractors: 8, locked: true, name: '步步为营' },
+        { id: 8,  idioms: 8, grid: [4, 8], time: 70,  distractors: 10, locked: true, name: '攻坚克难' },
+        { id: 9,  idioms: 8, grid: [5, 7], time: 65,  distractors: 12, locked: true, name: '炉火纯青' },
+        // 第10-12关：困难（9-10成语，36-40格，5x8/5x9，60秒，大量干扰）
+        { id: 10, idioms: 9, grid: [5, 8], time: 60,  distractors: 15, locked: true, name: '登峰造极' },
+        { id: 11, idioms: 10, grid: [5, 9], time: 55,  distractors: 18, locked: true, name: '出神入化' },
+        { id: 12, idioms: 10, grid: [6, 8], time: 50,  distractors: 20, locked: true, name: '无人能敌' },
+        // 第13-15关：地狱（11-12成语，44-48格，6x8/6x9，45秒，极多干扰+锁定机制）
+        { id: 13, idioms: 11, grid: [6, 8], time: 45,  distractors: 22, locked: true, name: '绝世高手', lockMechanism: true },
+        { id: 14, idioms: 12, grid: [6, 9], time: 40,  distractors: 25, locked: true, name: '一代宗师', lockMechanism: true },
+        { id: 15, idioms: 12, grid: [6, 9], time: 35,  distractors: 28, locked: true, name: '成语之神', lockMechanism: true, shufflePenalty: true }
+    ];
+
+    // ========== 游戏状态 ==========
+    let gameState = {
+        level: 1,
+        score: 0,
+        totalScore: 0,
+        timeLeft: 120,
+        combo: 0,
+        maxCombo: 0,
+        selectedCards: [],
+        matchedIdioms: [],
+        cards: [],
+        timerInterval: null,
+        isPlaying: false,
+        hintsUsed: 0,
+        shufflesUsed: 0,
+        levelResults: {}, // 存储每关结果
+        currentConfig: null
+    };
+
+    // ========== 初始化 ==========
+    function initParticles() {
+        const container = document.getElementById('particles');
+        container.innerHTML = '';
+        for (let i = 0; i < 25; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random() * 100 + '%';
+            p.style.animationDelay = Math.random() * 20 + 's';
+            p.style.animationDuration = (15 + Math.random() * 10) + 's';
+            container.appendChild(p);
+        }
+    }
+
+    function showLevelSelect() {
+        document.getElementById('startScreen').classList.add('hidden');
+        const screen = document.getElementById('levelSelectScreen');
+        screen.classList.remove('hidden');
+
+        const container = document.getElementById('levelSelect');
+        container.innerHTML = '';
+
+        levelConfig.forEach(config => {
+            const btn = document.createElement('div');
+            btn.className = 'level-btn';
+
+            // 检查是否解锁
+            const prevLevel = config.id - 1;
+            const isUnlocked = config.id === 1 ||
+                (gameState.levelResults[prevLevel] && gameState.levelResults[prevLevel].stars > 0);
+
+            if (!isUnlocked) {
+                btn.classList.add('locked');
+                btn.innerHTML = '🔒';
+            } else {
+                const result = gameState.levelResults[config.id];
+                if (result) {
+                    btn.classList.add('completed');
+                    btn.innerHTML = `${config.id}<div class="stars">${'★'.repeat(result.stars)}${'☆'.repeat(3-result.stars)}</div>`;
+                } else {
+                    btn.innerHTML = config.id;
+                }
+                btn.onclick = () => startLevel(config.id);
+            }
+            container.appendChild(btn);
+        });
+    }
+
+    function backToStart() {
+        document.getElementById('levelSelectScreen').classList.add('hidden');
+        document.getElementById('startScreen').classList.remove('hidden');
+    }
+
+    function backToLevelSelect() {
+        document.getElementById('gameOverModal').classList.remove('active');
+        document.getElementById('gameContainer').style.display = 'none';
+        showLevelSelect();
+    }
+
+    function startLevel(levelId) {
+        document.getElementById('levelSelectScreen').classList.add('hidden');
+        document.getElementById('gameContainer').style.display = 'flex';
+
+        gameState.level = levelId;
+        gameState.score = 0;
+        gameState.combo = 0;
+        gameState.maxCombo = 0;
+        gameState.selectedCards = [];
+        gameState.matchedIdioms = [];
+        gameState.hintsUsed = 0;
+        gameState.shufflesUsed = 0;
+        gameState.isPlaying = true;
+
+        const config = levelConfig.find(c => c.id === levelId);
+        gameState.currentConfig = config;
+        gameState.timeLeft = config.time;
+
+        updateDifficultyTags(config);
+        updateUI();
+        generateBoard();
+        startTimer();
+    }
+
+    function updateDifficultyTags(config) {
+        const container = document.getElementById('difficultyTags');
+        container.innerHTML = '';
+
+        const tags = [];
+        if (config.id <= 3) tags.push({ text: '入门', cls: 'tag-easy' });
+        else if (config.id <= 6) tags.push({ text: '简单', cls: 'tag-normal' });
+        else if (config.id <= 9) tags.push({ text: '中等', cls: 'tag-normal' });
+        else if (config.id <= 12) tags.push({ text: '困难', cls: 'tag-hard' });
+        else tags.push({ text: '地狱', cls: 'tag-extreme' });
+
+        tags.push({ text: `${config.grid[0]}×${config.grid[1]}`, cls: 'tag-normal' });
+        tags.push({ text: `${config.time}秒`, cls: 'tag-easy' });
+        if (config.distractors > 0) tags.push({ text: `干扰×${config.distractors}`, cls: 'tag-hard' });
+        if (config.lockMechanism) tags.push({ text: '锁定机制', cls: 'tag-extreme' });
+        if (config.shufflePenalty) tags.push({ text: '洗牌惩罚', cls: 'tag-extreme' });
+
+        tags.forEach(tag => {
+            const span = document.createElement('span');
+            span.className = `tag ${tag.cls}`;
+            span.textContent = tag.text;
+            container.appendChild(span);
+        });
+    }
+
+    // ========== 生成游戏板 ==========
+    function generateBoard() {
+        const config = gameState.currentConfig;
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+
+        // 设置网格
+        grid.style.gridTemplateColumns = `repeat(${config.grid[0]}, 1fr)`;
+
+        // 选择成语（根据难度从不同库选取）
+        let pool = [...idiomEasy];
+        if (config.id > 3) pool = pool.concat(idiomNormal);
+        if (config.id > 6) pool = pool.concat(idiomHard);
+        if (config.id > 9) pool = pool.concat(idiomExtreme);
+
+        const shuffled = [...pool].sort(() => Math.random() - 0.5);
+        const selectedIdioms = shuffled.slice(0, config.idioms);
+        gameState.currentIdioms = selectedIdioms;
+
+        // 提取成语汉字
+        let allChars = [];
+        selectedIdioms.forEach(idiom => {
+            for (let char of idiom) {
+                allChars.push({
+                    char: char,
+                    idiom: idiom,
+                    id: Math.random().toString(36).substr(2, 9),
+                    isDistractor: false
+                });
+            }
+        });
+
+        // 添加干扰字
+        for (let i = 0; i < config.distractors; i++) {
+            const randomChar = distractorChars[Math.floor(Math.random() * distractorChars.length)];
+            allChars.push({
+                char: randomChar,
+                idiom: null,
+                id: Math.random().toString(36).substr(2, 9),
+                isDistractor: true
+            });
+        }
+
+        // 打乱
+        for (let i = allChars.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allChars[i], allChars[j]] = [allChars[j], allChars[i]];
+        }
+
+        gameState.cards = allChars;
+
+        // 创建卡片
+        allChars.forEach((item, index) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.textContent = item.char;
+            card.dataset.index = index;
+            card.dataset.id = item.id;
+            card.dataset.idiom = item.idiom || '';
+            card.dataset.distractor = item.isDistractor;
+
+            // 地狱模式：部分卡片初始锁定
+            if (config.lockMechanism && Math.random() < 0.2) {
+                card.classList.add('locked');
+                card.dataset.locked = 'true';
+            }
+
+            card.onclick = () => selectCard(index);
+            grid.appendChild(card);
+        });
+
+        updateProgress();
+        updateButtonStates();
+    }
+
+    function selectCard(index) {
+        if (!gameState.isPlaying) return;
+
+        const card = document.querySelectorAll('.card')[index];
+        if (card.classList.contains('removed') || card.classList.contains('matched')) return;
+        if (card.dataset.locked === 'true') {
+            showHintText('🔒 该卡片已被锁定，先消除其他成语解锁！', 'warning');
+            return;
+        }
+
+        if (gameState.selectedCards.includes(index)) {
+            gameState.selectedCards = gameState.selectedCards.filter(i => i !== index);
+            card.classList.remove('selected');
+            updateCurrentIdiom();
+            return;
+        }
+
+        if (gameState.selectedCards.length >= 4) return;
+
+        gameState.selectedCards.push(index);
+        card.classList.add('selected');
+        updateCurrentIdiom();
+
+        if (gameState.selectedCards.length === 4) {
+            setTimeout(() => checkIdiom(), 300);
+        }
+    }
+
+    function updateCurrentIdiom() {
+        const container = document.getElementById('currentIdiom');
+        container.innerHTML = '';
+
+        for (let i = 0; i < 4; i++) {
+            const div = document.createElement('div');
+            div.className = 'idiom-char empty';
+            if (i < gameState.selectedCards.length) {
+                const card = gameState.cards[gameState.selectedCards[i]];
+                div.textContent = card.char;
+                div.classList.remove('empty');
+            }
+            container.appendChild(div);
+        }
+    }
+
+    function checkIdiom() {
+        const selectedChars = gameState.selectedCards.map(i => gameState.cards[i].char).join('');
+        const isIdiom = idiomDatabase.includes(selectedChars);
+
+        // 检查是否包含干扰字
+        const hasDistractor = gameState.selectedCards.some(i => gameState.cards[i].isDistractor);
+
+        if (hasDistractor) {
+            handleMismatch('❌ 不能选择干扰字！');
+            return;
+        }
+
+        if (isIdiom && !gameState.matchedIdioms.includes(selectedChars)) {
+            handleMatch(selectedChars);
+        } else if (gameState.matchedIdioms.includes(selectedChars)) {
+            handleMismatch('❌ 该成语已经消除过了！');
+        } else {
+            handleMismatch('❌ 这不是一个正确的成语！');
+        }
+    }
+
+    function handleMatch(idiom) {
+        gameState.matchedIdioms.push(idiom);
+        gameState.combo++;
+        if (gameState.combo > gameState.maxCombo) gameState.maxCombo = gameState.combo;
+
+        // 基础分 + 连击加成 + 难度加成
+        const baseScore = 100;
+        const comboBonus = Math.min(gameState.combo - 1, 10) * 30;
+        const difficultyBonus = (gameState.level - 1) * 20;
+        const totalScore = baseScore + comboBonus + difficultyBonus;
+        gameState.score += totalScore;
+
+        if (gameState.combo > 1) showCombo(gameState.combo);
+
+        gameState.selectedCards.forEach(index => {
+            const card = document.querySelectorAll('.card')[index];
+            card.classList.add('matched');
+            setTimeout(() => card.classList.add('removed'), 500);
+        });
+
+        // 解锁机制：消除后解锁随机锁定卡片
+        if (gameState.currentConfig.lockMechanism) {
+            const lockedCards = document.querySelectorAll('.card.locked:not(.removed)');
+            if (lockedCards.length > 0) {
+                const toUnlock = lockedCards[Math.floor(Math.random() * lockedCards.length)];
+                toUnlock.classList.remove('locked');
+                toUnlock.dataset.locked = 'false';
+                setTimeout(() => showHintText('🔓 解锁了一个卡片！', 'success'), 600);
+            }
+        }
+
+        showHintText(`🎉 ${idiom} — 正确！+${totalScore}分`, 'success');
+
+        gameState.selectedCards = [];
+        setTimeout(() => {
+            updateCurrentIdiom();
+            updateUI();
+            updateProgress();
+            checkWin();
+        }, 600);
+    }
+
+    function handleMismatch(message) {
+        gameState.combo = 0;
+
+        gameState.selectedCards.forEach(index => {
+            const card = document.querySelectorAll('.card')[index];
+            card.classList.add('wrong');
+        });
+
+        showHintText(message || '❌ 匹配失败，请重试', 'error');
+
+        setTimeout(() => {
+            gameState.selectedCards.forEach(index => {
+                const card = document.querySelectorAll('.card')[index];
+                card.classList.remove('selected', 'wrong');
+            });
+            gameState.selectedCards = [];
+            updateCurrentIdiom();
+            updateUI();
+        }, 500);
+    }
+
+    function showHintText(text, type) {
+        const hint = document.getElementById('hintText');
+        hint.textContent = text;
+        hint.className = 'hint-text ' + (type || '');
+    }
+
+    function showCombo(combo) {
+        const effect = document.getElementById('comboEffect');
+        const texts = ['', '连击!', '太棒了!', '厉害!', '无敌!', '神话!'];
+        effect.textContent = `${combo} ${texts[Math.min(combo, 5)] || '连击!'}`;
+        effect.classList.remove('show');
+        void effect.offsetWidth;
+        effect.classList.add('show');
+    }
+
+    function checkWin() {
+        const remaining = document.querySelectorAll('.card:not(.removed)');
+        // 只计算非干扰字
+        const realRemaining = Array.from(remaining).filter(c => c.dataset.distractor !== 'true');
+        if (realRemaining.length === 0) {
+            endGame(true);
+        }
+    }
+
+    // ========== UI 更新 ==========
+    function updateUI() {
+        document.getElementById('score').textContent = gameState.score;
+        document.getElementById('timer').textContent = gameState.timeLeft;
+        document.getElementById('combo').textContent = gameState.combo;
+        document.getElementById('target').textContent = gameState.currentConfig.idioms - gameState.matchedIdioms.length;
+        document.getElementById('levelNum').textContent = gameState.level;
+        document.getElementById('levelBadge').textContent = `第 ${gameState.level} 关`;
+        document.getElementById('levelInfo').textContent = `${gameState.level}/15`;
+        document.getElementById('levelProgress').style.width = (gameState.level / 15 * 100) + '%';
+
+        const timerEl = document.getElementById('timer');
+        if (gameState.timeLeft <= 10) timerEl.classList.add('warning');
+        else timerEl.classList.remove('warning');
+
+        // 时间条
+        const maxTime = gameState.currentConfig.time;
+        document.getElementById('timeBar').style.width = (gameState.timeLeft / maxTime * 100) + '%';
+
+        updateButtonStates();
+    }
+
+    function updateButtonStates() {
+        const config = gameState.currentConfig;
+        const shuffleBtn = document.getElementById('btnShuffle');
+        const hintBtn = document.getElementById('btnHint');
+
+        // 洗牌次数随难度减少
+        const maxShuffles = Math.max(1, 5 - Math.floor(config.id / 3));
+        shuffleBtn.disabled = gameState.shufflesUsed >= maxShuffles;
+        shuffleBtn.textContent = `🔀 洗牌${maxShuffles - gameState.shufflesUsed}`;
+
+        // 提示次数
+        const maxHints = Math.max(1, 4 - Math.floor(config.id / 4));
+        hintBtn.disabled = gameState.hintsUsed >= maxHints;
+        hintBtn.textContent = `💡 提示${maxHints - gameState.hintsUsed}`;
+    }
+
+    function updateProgress() {
+        const config = gameState.currentConfig;
+        const totalIdioms = config.idioms;
+        const matched = gameState.matchedIdioms.length;
+        document.getElementById('target').textContent = totalIdioms - matched;
+    }
+
+    // ========== 计时器 ==========
+    function startTimer() {
+        gameState.timerInterval = setInterval(() => {
+            gameState.timeLeft--;
+            updateUI();
+            if (gameState.timeLeft <= 0) endGame(false);
+        }, 1000);
+    }
+
+    // ========== 结束游戏 ==========
+    function endGame(isWin) {
+        gameState.isPlaying = false;
+        clearInterval(gameState.timerInterval);
+
+        const modal = document.getElementById('gameOverModal');
+        const title = document.getElementById('modalTitle');
+        const text = document.getElementById('modalText');
+        const score = document.getElementById('modalScore');
+        const detail = document.getElementById('modalDetail');
+        const stars = document.getElementById('starRating');
+        const nextBtn = document.getElementById('nextBtn');
+
+        // 计算星级
+        const config = gameState.currentConfig;
+        const maxPossibleScore = config.idioms * (100 + (config.id - 1) * 20 + 150); // 估算最高分
+        const ratio = gameState.score / maxPossibleScore;
+        let starCount = 1;
+        if (ratio >= 0.5) starCount = 2;
+        if (ratio >= 0.8 && isWin) starCount = 3;
+        if (!isWin) starCount = 0;
+
+        // 保存结果
+        gameState.levelResults[gameState.level] = {
+            score: gameState.score,
+            stars: starCount,
+            completed: isWin
+        };
+
+        // 解锁下一关
+        if (isWin && gameState.level < 15) {
+            const nextConfig = levelConfig.find(c => c.id === gameState.level + 1);
+            if (nextConfig) nextConfig.locked = false;
+        }
+
+        if (isWin) {
+            title.textContent = '🎉 恭喜过关！';
+            text.textContent = `第 ${gameState.level} 关「${config.name}」通关！`;
+            nextBtn.textContent = gameState.level < 15 ? '下一关 ➡️' : '完美通关 🏆';
+            nextBtn.style.display = 'inline-block';
+
+            // 显示解锁提示
+            if (gameState.level < 15) {
+                const nextName = levelConfig.find(c => c.id === gameState.level + 1).name;
+                showUnlockNotice(`🎊 解锁第${gameState.level + 1}关「${nextName}」！`);
+            }
+        } else {
+            title.textContent = '⏰ 时间到！';
+            text.textContent = `第 ${gameState.level} 关挑战失败`;
+            nextBtn.textContent = '重试 ↩️';
+        }
+
+        score.textContent = gameState.score;
+
+        stars.innerHTML = '';
+        for (let i = 0; i < 3; i++) {
+            const star = document.createElement('span');
+            star.className = 'star' + (i < starCount ? '' : ' empty');
+            star.textContent = '★';
+            star.style.animationDelay = (i * 0.15) + 's';
+            stars.appendChild(star);
+        }
+
+        detail.innerHTML = `
+                消除成语：${gameState.matchedIdioms.length}/${config.idioms} 个<br>
+                最高连击：${gameState.maxCombo} 次<br>
+                剩余时间：${gameState.timeLeft} 秒<br>
+                使用提示：${gameState.hintsUsed} 次
+            `;
+
+        modal.classList.add('active');
+    }
+
+    function showUnlockNotice(message) {
+        const notice = document.getElementById('unlockNotice');
+        notice.textContent = message;
+        notice.classList.add('show');
+        setTimeout(() => notice.classList.remove('show'), 3000);
+    }
+
+    function nextLevelOrRestart() {
+        document.getElementById('gameOverModal').classList.remove('active');
+        const result = gameState.levelResults[gameState.level];
+
+        if (result && result.completed && gameState.level < 15) {
+            startLevel(gameState.level + 1);
+        } else {
+            startLevel(gameState.level); // 重试
+        }
+    }
+
+    function restartGame() {
+        document.getElementById('gameOverModal').classList.remove('active');
+        startLevel(gameState.level);
+    }
+
+    // ========== 道具功能 ==========
+    function shuffleBoard() {
+        if (!gameState.isPlaying) return;
+
+        const config = gameState.currentConfig;
+        const maxShuffles = Math.max(1, 5 - Math.floor(config.id / 3));
+        if (gameState.shufflesUsed >= maxShuffles) return;
+
+        // 地狱模式洗牌惩罚
+        if (config.shufflePenalty) {
+            gameState.timeLeft = Math.max(5, gameState.timeLeft - 5);
+            showHintText('⚠️ 洗牌消耗5秒时间！', 'warning');
+        }
+
+        gameState.shufflesUsed++;
+
+        const cards = document.querySelectorAll('.card:not(.removed)');
+        const chars = Array.from(cards).map(card => ({
+            char: card.textContent,
+            idiom: card.dataset.idiom,
+            distractor: card.dataset.distractor === 'true',
+            locked: card.dataset.locked === 'true'
+        }));
+
+        for (let i = chars.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [chars[i], chars[j]] = [chars[j], chars[i]];
+        }
+
+        cards.forEach((card, index) => {
+            if (chars[index]) {
+                card.textContent = chars[index].char;
+                card.dataset.idiom = chars[index].idiom;
+                card.dataset.distractor = chars[index].distractor;
+                card.classList.remove('selected');
+                if (!chars[index].locked) {
+                    card.classList.remove('locked');
+                    card.dataset.locked = 'false';
+                }
+            }
+        });
+
+        gameState.selectedCards = [];
+        updateCurrentIdiom();
+        updateButtonStates();
+    }
+
+    function showHint() {
+        if (!gameState.isPlaying) return;
+
+        const config = gameState.currentConfig;
+        const maxHints = Math.max(1, 4 - Math.floor(config.id / 4));
+        if (gameState.hintsUsed >= maxHints) return;
+
+        gameState.hintsUsed++;
+
+        // 找到一个未匹配的成语
+        const unmatched = gameState.currentIdioms.find(idiom => !gameState.matchedIdioms.includes(idiom));
+        if (unmatched) {
+            // 高亮显示该成语的第一个未选中的字
+            const cards = document.querySelectorAll('.card:not(.removed)');
+            for (let card of cards) {
+                if (card.dataset.idiom === unmatched && !card.classList.contains('selected')) {
+                    card.style.animation = 'pulse 0.5s 3';
+                    setTimeout(() => card.style.animation = '', 1500);
+                    break;
+                }
+            }
+            showHintText(`💡 提示：找包含「${unmatched[0]}」字的成语`, 'success');
+        }
+        updateButtonStates();
+    }
+
+    function resetSelection() {
+        if (!gameState.isPlaying || gameState.selectedCards.length === 0) return;
+
+        gameState.selectedCards.forEach(index => {
+            const card = document.querySelectorAll('.card')[index];
+            card.classList.remove('selected');
+        });
+        gameState.selectedCards = [];
+        updateCurrentIdiom();
+        showHintText('↩️ 已撤销选择', '');
+    }
+
+    // 合并所有成语到一个数组用于验证
+    const idiomDatabase = [...idiomEasy, ...idiomNormal, ...idiomHard, ...idiomExtreme];
+
+    // 初始化
+    initParticles();
+</script>
+</body>
+</html>

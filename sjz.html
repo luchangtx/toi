@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>三角洲行动 - 完整版 | DELTA FORCE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* 扫描线效果 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 150, 255, 0.03) 2px,
+                rgba(0, 150, 255, 0.03) 4px
+            );
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* 粒子背景 */
+        #particles-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 游戏画布 */
+        #game-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* HUD 顶部信息栏 */
+        .hud-top {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 100%);
+            border-bottom: 2px solid #d4af37;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+
+        .hud-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .hud-label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .hud-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        /* 血条 */
+        .health-bar-container {
+            width: 200px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #d4af37;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .health-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff3333, #ff6666);
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .health-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 5px,
+                rgba(0,0,0,0.2) 5px,
+                rgba(0,0,0,0.2) 10px
+            );
+        }
+
+        .health-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            color: #fff;
+            text-shadow: 0 0 5px rgba(0,0,0,0.8);
+            z-index: 2;
+        }
+
+        /* 弹药显示 */
+        .ammo-display {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .ammo-current {
+            font-size: 28px;
+            color: #d4af37;
+            font-weight: bold;
+        }
+
+        .ammo-total {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* 武器信息 */
+        .weapon-info {
+            text-align: center;
+        }
+
+        .weapon-name {
+            font-size: 14px;
+            color: #00a8ff;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .weapon-mode {
+            font-size: 10px;
+            color: #666;
+        }
+
+        /* 任务目标 */
+        .mission-objective {
+            position: fixed;
+            top: 70px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid #00a8ff;
+            border-left: 4px solid #00a8ff;
+            padding: 12px 15px;
+            max-width: 280px;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+
+        .mission-title {
+            font-size: 11px;
+            color: #00a8ff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+
+        .mission-text {
+            font-size: 12px;
+            color: #ccc;
+            line-height: 1.5;
+        }
+
+        .mission-counter {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #d4af37;
+        }
+
+        /* 虚拟摇杆 */
+        .joystick-area {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 140px;
+            height: 140px;
+            z-index: 200;
+            touch-action: none;
+        }
+
+        .joystick-base {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .joystick-stick {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #d4af37, #8b6914);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+            transition: transform 0.05s;
+        }
+
+        /* 射击按钮 */
+        .fire-btn {
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, rgba(255, 50, 50, 0.8), rgba(150, 0, 0, 0.8));
+            border: 3px solid #ff3333;
+            border-radius: 50%;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 50, 50, 0.4);
+            transition: all 0.1s;
+            touch-action: none;
+        }
+
+        .fire-btn:active {
+            transform: scale(0.9);
+            background: radial-gradient(circle, rgba(255, 80, 80, 1), rgba(200, 0, 0, 1));
+        }
+
+        /* 换弹按钮 */
+        .reload-btn {
+            position: fixed;
+            bottom: 130px;
+            right: 55px;
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 168, 255, 0.3);
+            border: 2px solid #00a8ff;
+            border-radius: 50%;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #00a8ff;
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .reload-btn:active {
+            background: rgba(0, 168, 255, 0.5);
+        }
+
+        /* 武器选择面板 */
+        .weapon-panel {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 200;
+        }
+
+        .weapon-slot {
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #444;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .weapon-slot.active {
+            border-color: #d4af37;
+            background: rgba(212, 175, 55, 0.15);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .weapon-slot:hover {
+            border-color: #666;
+        }
+
+        .weapon-slot-name {
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 2px;
+        }
+
+        .weapon-slot-icon {
+            font-size: 20px;
+        }
+
+        /* 准星 */
+        .crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 150;
+            pointer-events: none;
+        }
+
+        .crosshair::before,
+        .crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(212, 175, 55, 0.8);
+        }
+
+        .crosshair::before {
+            width: 2px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .crosshair::after {
+            width: 16px;
+            height: 2px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .crosshair-dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #d4af37;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* 开始画面 */
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s;
+        }
+
+        .start-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .game-title {
+            font-size: 48px;
+            font-weight: bold;
+            color: #d4af37;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(212, 175, 55, 0.5);
+        }
+
+        .game-subtitle {
+            font-size: 14px;
+            color: #00a8ff;
+            letter-spacing: 4px;
+            margin-bottom: 40px;
+        }
+
+        .story-box {
+            max-width: 600px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #333;
+            border-left: 4px solid #d4af37;
+            padding: 25px;
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+
+        .story-title {
+            font-size: 14px;
+            color: #d4af37;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 15px;
+        }
+
+        .story-text {
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        .mission-brief {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+        }
+
+        .mission-brief-title {
+            font-size: 12px;
+            color: #00a8ff;
+            margin-bottom: 8px;
+        }
+
+        .mission-brief-text {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .start-btn {
+            padding: 15px 60px;
+            background: linear-gradient(135deg, #d4af37, #8b6914);
+            border: none;
+            color: #000;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.5);
+        }
+
+        /* 击杀提示 */
+        .kill-feed {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .kill-item {
+            background: rgba(0, 0, 0, 0.8);
+            border-left: 3px solid #d4af37;
+            padding: 5px 12px;
+            font-size: 12px;
+            color: #fff;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* 伤害指示器 */
+        .damage-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 90;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .damage-indicator.active {
+            opacity: 1;
+            box-shadow: inset 0 0 100px rgba(255, 0, 0, 0.5);
+        }
+
+        /* 得分弹出 */
+        .score-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 36px;
+            font-weight: bold;
+            color: #d4af37;
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.8);
+            z-index: 300;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.5s;
+        }
+
+        .score-popup.show {
+            opacity: 1;
+            transform: translate(-50%, -80%);
+        }
+
+        /* 小地图 */
+        .minimap {
+            position: fixed;
+            top: 70px;
+            left: 10px;
+            width: 120px;
+            height: 120px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #333;
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .minimap-title {
+            position: absolute;
+            top: 2px;
+            left: 5px;
+            font-size: 8px;
+            color: #666;
+            z-index: 2;
+        }
+
+        /* 通知消息 */
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #d4af37;
+            padding: 20px 40px;
+            font-size: 18px;
+            color: #d4af37;
+            z-index: 500;
+            display: none;
+        }
+
+        .notification.show {
+            display: block;
+            animation: pulse 0.5s ease;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .game-title { font-size: 32px; }
+            .hud-top { height: 50px; padding: 0 10px; }
+            .health-bar-container { width: 120px; height: 16px; }
+            .joystick-area { width: 120px; height: 120px; bottom: 20px; left: 20px; }
+            .fire-btn { width: 70px; height: 70px; bottom: 30px; right: 30px; }
+            .weapon-panel { bottom: 20px; }
+            .weapon-slot { width: 50px; height: 50px; }
+            .mission-objective { max-width: 200px; font-size: 11px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 粒子背景 -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- 游戏画布 -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- HUD 顶部 -->
+    <div class="hud-top">
+        <div class="hud-section">
+            <div>
+                <div class="hud-label">生命值</div>
+                <div class="health-bar-container">
+                    <div class="health-bar" id="health-bar" style="width: 100%;"></div>
+                    <div class="health-text" id="health-text">100/100</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hud-section">
+            <div class="weapon-info">
+                <div class="weapon-name" id="weapon-name">M4A1</div>
+                <div class="weapon-mode">全自动 | 5.56mm</div>
+            </div>
+        </div>
+
+        <div class="hud-section">
+            <div class="ammo-display">
+                <div class="ammo-current" id="ammo-current">30</div>
+                <div class="ammo-total" id="ammo-total">/ 120</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 小地图 -->
+    <div class="minimap">
+        <div class="minimap-title">RADAR</div>
+        <canvas id="minimap-canvas" width="120" height="120"></canvas>
+    </div>
+
+    <!-- 任务目标 -->
+    <div class="mission-objective">
+        <div class="mission-title">当前任务</div>
+        <div class="mission-text" id="mission-text">
+            潜入敌方据点，消灭所有敌对目标。利用掩体进行战术推进，注意敌方狙击手位置。
+        </div>
+        <div class="mission-counter">
+            击杀: <span id="kill-count">0</span> / <span id="target-count">15</span>
+        </div>
+    </div>
+
+    <!-- 击杀提示 -->
+    <div class="kill-feed" id="kill-feed"></div>
+
+    <!-- 准星 -->
+    <div class="crosshair">
+        <div class="crosshair-dot"></div>
+    </div>
+
+    <!-- 伤害指示器 -->
+    <div class="damage-indicator" id="damage-indicator"></div>
+
+    <!-- 得分弹出 -->
+    <div class="score-popup" id="score-popup">+100</div>
+
+    <!-- 通知 -->
+    <div class="notification" id="notification"></div>
+
+    <!-- 虚拟摇杆 -->
+    <div class="joystick-area" id="joystick">
+        <div class="joystick-base"></div>
+        <div class="joystick-stick" id="joystick-stick"></div>
+    </div>
+
+    <!-- 射击按钮 -->
+    <div class="fire-btn" id="fire-btn">开火</div>
+
+    <!-- 换弹按钮 -->
+    <div class="reload-btn" id="reload-btn">↻</div>
+
+    <!-- 武器选择 -->
+    <div class="weapon-panel">
+        <div class="weapon-slot active" data-weapon="m4a1" onclick="selectWeapon('m4a1')">
+            <div class="weapon-slot-name">M4A1</div>
+            <div class="weapon-slot-icon">🔫</div>
+        </div>
+        <div class="weapon-slot" data-weapon="ak47" onclick="selectWeapon('ak47')">
+            <div class="weapon-slot-name">AK-47</div>
+            <div class="weapon-slot-icon">🔫</div>
+        </div>
+        <div class="weapon-slot" data-weapon="smg" onclick="selectWeapon('smg')">
+            <div class="weapon-slot-name">SMG-45</div>
+            <div class="weapon-slot-icon">🔫</div>
+        </div>
+    </div>
+
+    <!-- 开始画面 -->
+    <div class="start-screen" id="start-screen">
+        <div class="game-title">三角洲行动</div>
+        <div class="game-subtitle">DELTA FORCE - 完整版</div>
+
+        <div class="story-box">
+            <div class="story-title">任务简报</div>
+            <div class="story-text">
+                2035年，哈夫克集团在全球各地秘密建立军事设施，窃取资源并研发生化武器。
+                G.T.I.（全球战术干预组织）收到情报，哈夫克在临界点地区部署了新型气象武器。
+                <br><br>
+                你作为G.T.I.特战干员，代号"猎鹰"，奉命潜入敌方控制区域。
+                你的任务是摧毁敌方通讯设施，消灭所有抵抗力量，并获取哈夫克阴谋的确凿证据。
+            </div>
+            <div class="mission-brief">
+                <div class="mission-brief-title">作战目标</div>
+                <div class="mission-brief-text">
+                    ► 消灭15名敌方士兵<br>
+                    ► 保持生命值高于50%<br>
+                    ► 利用地形优势进行战术推进<br>
+                    ► 武器可选：M4A1（均衡型）/ AK-47（高伤害）/ SMG-45（高射速）
+                </div>
+            </div>
+        </div>
+
+        <button class="start-btn" onclick="startGame()">开始行动</button>
+    </div>
+
+    <script>
+        // ==================== 游戏配置 ====================
+        const WEAPONS = {
+            m4a1: {
+                name: 'M4A1',
+                damage: 25,
+                fireRate: 150,
+                magazine: 30,
+                totalAmmo: 120,
+                reloadTime: 2000,
+                recoil: 2,
+                color: '#00a8ff',
+                caliber: '5.56mm NATO',
+                mode: '全自动'
+            },
+            ak47: {
+                name: 'AK-47',
+                damage: 35,
+                fireRate: 200,
+                magazine: 30,
+                totalAmmo: 90,
+                reloadTime: 2500,
+                recoil: 4,
+                color: '#ff3333',
+                caliber: '7.62×39mm',
+                mode: '全自动'
+            },
+            smg: {
+                name: 'SMG-45',
+                damage: 18,
+                fireRate: 80,
+                magazine: 25,
+                totalAmmo: 150,
+                reloadTime: 1800,
+                recoil: 1,
+                color: '#00ff88',
+                caliber: '.45 ACP',
+                mode: '全自动'
+            }
+        };
+
+        // ==================== 游戏状态 ====================
+        let gameState = {
+            running: false,
+            player: {
+                x: 0,
+                y: 0,
+                health: 100,
+                maxHealth: 100,
+                speed: 3,
+                angle: 0,
+                weapon: 'm4a1',
+                ammo: 30,
+                totalAmmo: 120,
+                reloading: false,
+                lastShot: 0,
+                kills: 0
+            },
+            enemies: [],
+            bullets: [],
+            particles: [],
+            camera: { x: 0, y: 0 },
+            score: 0,
+            targetKills: 15,
+            gameTime: 0
+        };
+
+        // ==================== Canvas 设置 ====================
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const minimapCanvas = document.getElementById('minimap-canvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
+        const particlesCanvas = document.getElementById('particles-canvas');
+        const particlesCtx = particlesCanvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            particlesCanvas.width = window.innerWidth;
+            particlesCanvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // ==================== 地图生成 ====================
+        const MAP_WIDTH = 3000;
+        const MAP_HEIGHT = 3000;
+        const obstacles = [];
+
+        function generateMap() {
+            obstacles.length = 0;
+            // 生成建筑物/掩体
+            for (let i = 0; i < 40; i++) {
+                obstacles.push({
+                    x: Math.random() * (MAP_WIDTH - 200) + 100,
+                    y: Math.random() * (MAP_HEIGHT - 200) + 100,
+                    width: Math.random() * 150 + 50,
+                    height: Math.random() * 150 + 50,
+                    type: Math.random() > 0.5 ? 'building' : 'barrier'
+                });
+            }
+            // 边界墙
+            obstacles.push({ x: -100, y: -100, width: MAP_WIDTH + 200, height: 100, type: 'wall' });
+            obstacles.push({ x: -100, y: MAP_HEIGHT, width: MAP_WIDTH + 200, height: 100, type: 'wall' });
+            obstacles.push({ x: -100, y: -100, width: 100, height: MAP_HEIGHT + 200, type: 'wall' });
+            obstacles.push({ x: MAP_WIDTH, y: -100, width: 100, height: MAP_HEIGHT + 200, type: 'wall' });
+        }
+
+        // ==================== 粒子系统 ====================
+        let bgParticles = [];
+        function initParticles() {
+            bgParticles = [];
+            for (let i = 0; i < 100; i++) {
+                bgParticles.push({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    size: Math.random() * 2 + 0.5,
+                    speedX: (Math.random() - 0.5) * 0.5,
+                    speedY: (Math.random() - 0.5) * 0.5,
+                    opacity: Math.random() * 0.5 + 0.1
+                });
+            }
+        }
+
+        function updateParticles() {
+            particlesCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
+            bgParticles.forEach(p => {
+                p.x += p.speedX;
+                p.y += p.speedY;
+                if (p.x < 0) p.x = particlesCanvas.width;
+                if (p.x > particlesCanvas.width) p.x = 0;
+                if (p.y < 0) p.y = particlesCanvas.height;
+                if (p.y > particlesCanvas.height) p.y = 0;
+
+                particlesCtx.beginPath();
+                particlesCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                particlesCtx.fillStyle = `rgba(212, 175, 55, ${p.opacity})`;
+                particlesCtx.fill();
+            });
+        }
+
+        // ==================== 敌人系统 ====================
+        function spawnEnemy() {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 600 + Math.random() * 400;
+            const enemy = {
+                x: gameState.player.x + Math.cos(angle) * dist,
+                y: gameState.player.y + Math.sin(angle) * dist,
+                health: 60 + Math.random() * 40,
+                maxHealth: 100,
+                speed: 1 + Math.random() * 1.5,
+                angle: 0,
+                lastShot: 0,
+                fireRate: 800 + Math.random() * 400,
+                state: 'chase', // chase, shoot, retreat
+                size: 15
+            };
+            gameState.enemies.push(enemy);
+        }
+
+        function updateEnemies(dt) {
+            gameState.enemies.forEach((enemy, index) => {
+                const dx = gameState.player.x - enemy.x;
+                const dy = gameState.player.y - enemy.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                enemy.angle = Math.atan2(dy, dx);
+
+                if (dist > 400) {
+                    enemy.state = 'chase';
+                } else if (dist < 200) {
+                    enemy.state = 'retreat';
+                } else {
+                    enemy.state = 'shoot';
+                }
+
+                if (enemy.state === 'chase') {
+                    enemy.x += Math.cos(enemy.angle) * enemy.speed;
+                    enemy.y += Math.sin(enemy.angle) * enemy.speed;
+                } else if (enemy.state === 'retreat') {
+                    enemy.x -= Math.cos(enemy.angle) * enemy.speed * 0.5;
+                    enemy.y -= Math.sin(enemy.angle) * enemy.speed * 0.5;
+                }
+
+                // 敌人射击
+                if (enemy.state === 'shoot' && Date.now() - enemy.lastShot > enemy.fireRate) {
+                    enemy.lastShot = Date.now();
+                    const bulletAngle = enemy.angle + (Math.random() - 0.5) * 0.3;
+                    gameState.bullets.push({
+                        x: enemy.x,
+                        y: enemy.y,
+                        vx: Math.cos(bulletAngle) * 8,
+                        vy: Math.sin(bulletAngle) * 8,
+                        damage: 8,
+                        owner: 'enemy',
+                        color: '#ff4444'
+                    });
+                }
+
+                // 碰撞检测 - 敌人与障碍物
+                obstacles.forEach(obs => {
+                    if (enemy.x > obs.x && enemy.x < obs.x + obs.width &&
+                        enemy.y > obs.y && enemy.y < obs.y + obs.height) {
+                        enemy.x -= Math.cos(enemy.angle) * enemy.speed * 2;
+                        enemy.y -= Math.sin(enemy.angle) * enemy.speed * 2;
+                    }
+                });
+            });
+        }
+
+        // ==================== 子弹系统 ====================
+        function updateBullets() {
+            gameState.bullets = gameState.bullets.filter(bullet => {
+                bullet.x += bullet.vx;
+                bullet.y += bullet.vy;
+
+                // 边界检查
+                if (bullet.x < 0 || bullet.x > MAP_WIDTH || bullet.y < 0 || bullet.y > MAP_HEIGHT) {
+                    return false;
+                }
+
+                // 障碍物碰撞
+                for (let obs of obstacles) {
+                    if (bullet.x > obs.x && bullet.x < obs.x + obs.width &&
+                        bullet.y > obs.y && bullet.y < obs.y + obs.height) {
+                        // 击中障碍物粒子效果
+                        for (let i = 0; i < 5; i++) {
+                            gameState.particles.push({
+                                x: bullet.x,
+                                y: bullet.y,
+                                vx: (Math.random() - 0.5) * 4,
+                                vy: (Math.random() - 0.5) * 4,
+                                life: 20,
+                                color: '#888',
+                                size: 2
+                            });
+                        }
+                        return false;
+                    }
+                }
+
+                if (bullet.owner === 'player') {
+                    // 检测击中敌人
+                    for (let i = gameState.enemies.length - 1; i >= 0; i--) {
+                        const enemy = gameState.enemies[i];
+                        const dist = Math.sqrt((bullet.x - enemy.x) ** 2 + (bullet.y - enemy.y) ** 2);
+                        if (dist < enemy.size + 5) {
+                            enemy.health -= bullet.damage;
+                            // 击中粒子
+                            for (let j = 0; j < 8; j++) {
+                                gameState.particles.push({
+                                    x: bullet.x,
+                                    y: bullet.y,
+                                    vx: (Math.random() - 0.5) * 6,
+                                    vy: (Math.random() - 0.5) * 6,
+                                    life: 30,
+                                    color: '#ff3333',
+                                    size: 3
+                                });
+                            }
+
+                            if (enemy.health <= 0) {
+                                gameState.enemies.splice(i, 1);
+                                gameState.player.kills++;
+                                gameState.score += 100;
+                                showScorePopup('+100');
+                                addKillFeed('敌方士兵 已消灭');
+                                updateHUD();
+
+                                if (gameState.player.kills >= gameState.targetKills) {
+                                    showNotification('任务完成！所有目标已清除');
+                                }
+                            }
+                            return false;
+                        }
+                    }
+                } else {
+                    // 检测击中玩家
+                    const dist = Math.sqrt((bullet.x - gameState.player.x) ** 2 + (bullet.y - gameState.player.y) ** 2);
+                    if (dist < 20) {
+                        gameState.player.health -= bullet.damage;
+                        document.getElementById('damage-indicator').classList.add('active');
+                        setTimeout(() => {
+                            document.getElementById('damage-indicator').classList.remove('active');
+                        }, 200);
+
+                        if (gameState.player.health <= 0) {
+                            gameState.player.health = 0;
+                            showNotification('任务失败！你已阵亡');
+                            setTimeout(() => location.reload(), 3000);
+                        }
+                        updateHUD();
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+        }
+
+        // ==================== 粒子更新 ====================
+        function updateGameParticles() {
+            gameState.particles = gameState.particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                p.size *= 0.95;
+                return p.life > 0;
+            });
+        }
+
+        // ==================== 渲染 ====================
+        function render() {
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 网格背景
+            ctx.strokeStyle = 'rgba(212, 175, 55, 0.05)';
+            ctx.lineWidth = 1;
+            const gridSize = 100;
+            const offsetX = -gameState.camera.x % gridSize;
+            const offsetY = -gameState.camera.y % gridSize;
+
+            for (let x = offsetX; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = offsetY; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            ctx.save();
+            ctx.translate(-gameState.camera.x, -gameState.camera.y);
+
+            // 绘制障碍物
+            obstacles.forEach(obs => {
+                if (obs.type === 'building') {
+                    ctx.fillStyle = '#2a2a2a';
+                    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                    ctx.strokeStyle = '#444';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+                    // 建筑细节
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(obs.x + 10, obs.y + 10, obs.width - 20, obs.height - 20);
+                } else if (obs.type === 'barrier') {
+                    ctx.fillStyle = '#3a3a2a';
+                    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                    ctx.strokeStyle = '#555';
+                    ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+                    // 沙袋纹理
+                    for (let i = 0; i < obs.width; i += 20) {
+                        for (let j = 0; j < obs.height; j += 15) {
+                            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                            ctx.strokeRect(obs.x + i, obs.y + j, 20, 15);
+                        }
+                    }
+                }
+            });
+
+            // 绘制敌人
+            gameState.enemies.forEach(enemy => {
+                ctx.save();
+                ctx.translate(enemy.x, enemy.y);
+                ctx.rotate(enemy.angle);
+
+                // 敌人身体
+                ctx.fillStyle = '#8B0000';
+                ctx.beginPath();
+                ctx.arc(0, 0, enemy.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 方向指示
+                ctx.fillStyle = '#ff3333';
+                ctx.fillRect(0, -3, 20, 6);
+
+                // 血条
+                ctx.restore();
+                const healthPercent = enemy.health / enemy.maxHealth;
+                ctx.fillStyle = '#333';
+                ctx.fillRect(enemy.x - 15, enemy.y - 25, 30, 4);
+                ctx.fillStyle = healthPercent > 0.5 ? '#00ff00' : '#ff0000';
+                ctx.fillRect(enemy.x - 15, enemy.y - 25, 30 * healthPercent, 4);
+            });
+
+            // 绘制子弹
+            gameState.bullets.forEach(bullet => {
+                ctx.beginPath();
+                ctx.arc(bullet.x, bullet.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = bullet.color;
+                ctx.fill();
+
+                // 子弹尾迹
+                ctx.beginPath();
+                ctx.moveTo(bullet.x, bullet.y);
+                ctx.lineTo(bullet.x - bullet.vx * 3, bullet.y - bullet.vy * 3);
+                ctx.strokeStyle = bullet.color;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // 绘制粒子
+            gameState.particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life / 30;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            });
+
+            // 绘制玩家
+            ctx.save();
+            ctx.translate(gameState.player.x, gameState.player.y);
+            ctx.rotate(gameState.player.angle);
+
+            // 玩家身体
+            ctx.fillStyle = '#00a8ff';
+            ctx.beginPath();
+            ctx.arc(0, 0, 18, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 玩家方向
+            ctx.fillStyle = '#d4af37';
+            ctx.fillRect(0, -4, 25, 8);
+
+            // 武器
+            const weapon = WEAPONS[gameState.player.weapon];
+            ctx.fillStyle = weapon.color;
+            ctx.fillRect(15, 8, 20, 6);
+
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        // ==================== 小地图 ====================
+        function renderMinimap() {
+            minimapCtx.fillStyle = '#0a0a0a';
+            minimapCtx.fillRect(0, 0, 120, 120);
+
+            const scale = 120 / MAP_WIDTH;
+
+            // 障碍物
+            minimapCtx.fillStyle = '#333';
+            obstacles.forEach(obs => {
+                if (obs.type !== 'wall') {
+                    minimapCtx.fillRect(obs.x * scale, obs.y * scale, obs.width * scale, obs.height * scale);
+                }
+            });
+
+            // 敌人
+            minimapCtx.fillStyle = '#ff3333';
+            gameState.enemies.forEach(enemy => {
+                minimapCtx.beginPath();
+                minimapCtx.arc(enemy.x * scale, enemy.y * scale, 2, 0, Math.PI * 2);
+                minimapCtx.fill();
+            });
+
+            // 玩家
+            minimapCtx.fillStyle = '#00a8ff';
+            minimapCtx.beginPath();
+            minimapCtx.arc(gameState.player.x * scale, gameState.player.y * scale, 3, 0, Math.PI * 2);
+            minimapCtx.fill();
+
+            // 视野范围
+            minimapCtx.strokeStyle = 'rgba(212, 175, 55, 0.3)';
+            minimapCtx.lineWidth = 1;
+            minimapCtx.beginPath();
+            minimapCtx.arc(gameState.player.x * scale, gameState.player.y * scale, 30, 0, Math.PI * 2);
+            minimapCtx.stroke();
+        }
+
+        // ==================== 摇杆控制 ====================
+        const joystick = document.getElementById('joystick');
+        const joystickStick = document.getElementById('joystick-stick');
+        let joystickActive = false;
+        let joystickData = { x: 0, y: 0 };
+
+        joystick.addEventListener('touchstart', handleJoystickStart, { passive: false });
+        joystick.addEventListener('touchmove', handleJoystickMove, { passive: false });
+        joystick.addEventListener('touchend', handleJoystickEnd, { passive: false });
+        joystick.addEventListener('mousedown', handleJoystickMouseDown);
+        document.addEventListener('mousemove', handleJoystickMouseMove);
+        document.addEventListener('mouseup', handleJoystickMouseUp);
+
+        function handleJoystickStart(e) {
+            e.preventDefault();
+            joystickActive = true;
+            updateJoystick(e.touches[0]);
+        }
+
+        function handleJoystickMove(e) {
+            e.preventDefault();
+            if (joystickActive) {
+                updateJoystick(e.touches[0]);
+            }
+        }
+
+        function handleJoystickEnd(e) {
+            e.preventDefault();
+            joystickActive = false;
+            joystickStick.style.transform = 'translate(-50%, -50%)';
+            joystickData = { x: 0, y: 0 };
+        }
+
+        function handleJoystickMouseDown(e) {
+            joystickActive = true;
+            updateJoystick(e);
+        }
+
+        function handleJoystickMouseMove(e) {
+            if (joystickActive) {
+                updateJoystick(e);
+            }
+        }
+
+        function handleJoystickMouseUp() {
+            joystickActive = false;
+            joystickStick.style.transform = 'translate(-50%, -50%)';
+            joystickData = { x: 0, y: 0 };
+        }
+
+        function updateJoystick(e) {
+            const rect = joystick.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const clientX = e.clientX || e.pageX;
+            const clientY = e.clientY || e.pageY;
+
+            let dx = clientX - centerX;
+            let dy = clientY - centerY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const maxDist = 45;
+
+            if (dist > maxDist) {
+                dx = (dx / dist) * maxDist;
+                dy = (dy / dist) * maxDist;
+            }
+
+            joystickStick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            joystickData = { x: dx / maxDist, y: dy / maxDist };
+        }
+
+        // ==================== 射击控制 ====================
+        const fireBtn = document.getElementById('fire-btn');
+        let firing = false;
+
+        fireBtn.addEventListener('touchstart', (e) => { e.preventDefault(); firing = true; });
+        fireBtn.addEventListener('touchend', (e) => { e.preventDefault(); firing = false; });
+        fireBtn.addEventListener('mousedown', () => firing = true);
+        fireBtn.addEventListener('mouseup', () => firing = false);
+
+        // 鼠标瞄准
+        document.addEventListener('mousemove', (e) => {
+            if (!gameState.running) return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left + gameState.camera.x;
+            const mouseY = e.clientY - rect.top + gameState.camera.y;
+            gameState.player.angle = Math.atan2(mouseY - gameState.player.y, mouseX - gameState.player.x);
+        });
+
+        // 点击射击
+        document.addEventListener('mousedown', (e) => {
+            if (!gameState.running || e.target.closest('.joystick-area') || e.target.closest('.fire-btn') || 
+                e.target.closest('.reload-btn') || e.target.closest('.weapon-panel')) return;
+            fire();
+        });
+
+        // 换弹
+        document.getElementById('reload-btn').addEventListener('click', reload);
+        document.getElementById('reload-btn').addEventListener('touchstart', (e) => { e.preventDefault(); reload(); });
+
+        function fire() {
+            if (!gameState.running || gameState.player.reloading) return;
+            const weapon = WEAPONS[gameState.player.weapon];
+            const now = Date.now();
+
+            if (now - gameState.player.lastShot < weapon.fireRate) return;
+            if (gameState.player.ammo <= 0) {
+                reload();
+                return;
+            }
+
+            gameState.player.lastShot = now;
+            gameState.player.ammo--;
+
+            const recoil = (Math.random() - 0.5) * weapon.recoil * 0.1;
+            const bulletAngle = gameState.player.angle + recoil;
+
+            gameState.bullets.push({
+                x: gameState.player.x + Math.cos(gameState.player.angle) * 25,
+                y: gameState.player.y + Math.sin(gameState.player.angle) * 25,
+                vx: Math.cos(bulletAngle) * 15,
+                vy: Math.sin(bulletAngle) * 15,
+                damage: weapon.damage,
+                owner: 'player',
+                color: '#d4af37'
+            });
+
+            // 枪口火焰粒子
+            for (let i = 0; i < 5; i++) {
+                gameState.particles.push({
+                    x: gameState.player.x + Math.cos(gameState.player.angle) * 25,
+                    y: gameState.player.y + Math.sin(gameState.player.angle) * 25,
+                    vx: Math.cos(bulletAngle) * 3 + (Math.random() - 0.5) * 2,
+                    vy: Math.sin(bulletAngle) * 3 + (Math.random() - 0.5) * 2,
+                    life: 10,
+                    color: '#ffaa00',
+                    size: 4
+                });
+            }
+
+            updateHUD();
+        }
+
+        function reload() {
+            if (gameState.player.reloading || gameState.player.ammo >= WEAPONS[gameState.player.weapon].magazine) return;
+            const weapon = WEAPONS[gameState.player.weapon];
+            if (gameState.player.totalAmmo <= 0) return;
+
+            gameState.player.reloading = true;
+            showNotification('换弹中...');
+
+            setTimeout(() => {
+                const need = weapon.magazine - gameState.player.ammo;
+                const take = Math.min(need, gameState.player.totalAmmo);
+                gameState.player.ammo += take;
+                gameState.player.totalAmmo -= take;
+                gameState.player.reloading = false;
+                updateHUD();
+            }, weapon.reloadTime);
+        }
+
+        // ==================== 武器选择 ====================
+        function selectWeapon(weaponId) {
+            gameState.player.weapon = weaponId;
+            const weapon = WEAPONS[weaponId];
+            gameState.player.ammo = weapon.magazine;
+            gameState.player.totalAmmo = weapon.totalAmmo;
+            gameState.player.reloading = false;
+
+            document.querySelectorAll('.weapon-slot').forEach(slot => {
+                slot.classList.remove('active');
+            });
+            document.querySelector(`[data-weapon="${weaponId}"]`).classList.add('active');
+
+            updateHUD();
+        }
+
+        // ==================== HUD 更新 ====================
+        function updateHUD() {
+            const player = gameState.player;
+            const weapon = WEAPONS[player.weapon];
+
+            document.getElementById('health-bar').style.width = (player.health / player.maxHealth * 100) + '%';
+            document.getElementById('health-text').textContent = `${Math.ceil(player.health)}/${player.maxHealth}`;
+            document.getElementById('ammo-current').textContent = player.ammo;
+            document.getElementById('ammo-total').textContent = `/ ${player.totalAmmo}`;
+            document.getElementById('weapon-name').textContent = weapon.name;
+            document.getElementById('kill-count').textContent = player.kills;
+        }
+
+        function showScorePopup(text) {
+            const popup = document.getElementById('score-popup');
+            popup.textContent = text;
+            popup.classList.add('show');
+            setTimeout(() => popup.classList.remove('show'), 800);
+        }
+
+        function addKillFeed(text) {
+            const feed = document.getElementById('kill-feed');
+            const item = document.createElement('div');
+            item.className = 'kill-item';
+            item.textContent = text;
+            feed.appendChild(item);
+            setTimeout(() => item.remove(), 3000);
+        }
+
+        function showNotification(text) {
+            const notif = document.getElementById('notification');
+            notif.textContent = text;
+            notif.classList.add('show');
+            setTimeout(() => notif.classList.remove('show'), 2000);
+        }
+
+        // ==================== 游戏循环 ====================
+        function gameLoop() {
+            if (!gameState.running) {
+                updateParticles();
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+
+            // 玩家移动
+            if (joystickActive) {
+                gameState.player.x += joystickData.x * gameState.player.speed;
+                gameState.player.y += joystickData.y * gameState.player.speed;
+            }
+
+            // 边界限制
+            gameState.player.x = Math.max(20, Math.min(MAP_WIDTH - 20, gameState.player.x));
+            gameState.player.y = Math.max(20, Math.min(MAP_HEIGHT - 20, gameState.player.y));
+
+            // 碰撞检测 - 玩家与障碍物
+            obstacles.forEach(obs => {
+                if (obs.type === 'wall') return;
+                if (gameState.player.x > obs.x - 20 && gameState.player.x < obs.x + obs.width + 20 &&
+                    gameState.player.y > obs.y - 20 && gameState.player.y < obs.y + obs.height + 20) {
+                    // 简单的推开
+                    const centerX = obs.x + obs.width / 2;
+                    const centerY = obs.y + obs.height / 2;
+                    if (Math.abs(gameState.player.x - centerX) / obs.width > Math.abs(gameState.player.y - centerY) / obs.height) {
+                        gameState.player.x = gameState.player.x < centerX ? obs.x - 20 : obs.x + obs.width + 20;
+                    } else {
+                        gameState.player.y = gameState.player.y < centerY ? obs.y - 20 : obs.y + obs.height + 20;
+                    }
+                }
+            });
+
+            // 自动射击
+            if (firing) {
+                fire();
+            }
+
+            // 相机跟随
+            gameState.camera.x = gameState.player.x - canvas.width / 2;
+            gameState.camera.y = gameState.player.y - canvas.height / 2;
+
+            // 生成敌人
+            if (gameState.enemies.length < 8 && Math.random() < 0.01) {
+                spawnEnemy();
+            }
+
+            updateEnemies();
+            updateBullets();
+            updateGameParticles();
+            render();
+            renderMinimap();
+            updateParticles();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ==================== 开始游戏 ====================
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            gameState.running = true;
+            gameState.player.x = MAP_WIDTH / 2;
+            gameState.player.y = MAP_HEIGHT / 2;
+            gameState.player.health = 100;
+            gameState.player.ammo = WEAPONS.m4a1.magazine;
+            gameState.player.totalAmmo = WEAPONS.m4a1.totalAmmo;
+            gameState.player.kills = 0;
+            gameState.enemies = [];
+            gameState.bullets = [];
+            gameState.particles = [];
+            gameState.score = 0;
+
+            generateMap();
+
+            // 初始生成一些敌人
+            for (let i = 0; i < 5; i++) {
+                spawnEnemy();
+            }
+
+            updateHUD();
+            showNotification('行动开始！消灭所有目标');
+        }
+
+        // ==================== 初始化 ====================
+        initParticles();
+        generateMap();
+        gameLoop();
+    </script>
+</body>
+</html>
