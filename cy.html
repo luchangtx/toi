@@ -135,34 +135,36 @@
             white-space: nowrap;
         }
 
-        /* 信息面板 */
+        /* 信息面板 - 改为单行显示，减小尺寸 */
         .info-panel {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin-bottom: 12px;
+            display: flex;
+            flex-direction: row;
+            gap: 6px;
+            margin-bottom: 4px;
         }
 
         .info-item {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 215, 0, 0.15);
-            border-radius: 12px;
-            padding: 10px 5px;
+            border-radius: 8px;
+            padding: 3px 2px;
             text-align: center;
+            flex: 1;
         }
 
         .info-label {
-            font-size: 0.65rem;
-            color: rgba(255, 255, 255, 0.4);
-            margin-bottom: 4px;
-            letter-spacing: 1px;
+            font-size: 0.45rem;
+            color: rgba(255, 255, 255, 0.35);
+            margin-bottom: 1px;
+            letter-spacing: 0;
+            margin-bottom: 1px;
         }
 
         .info-value {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #ffd700;
+            font-size: 0.8rem;
+            line-height: 1.1;
+            margin-top: -1px;
         }
 
         .timer { color: #ff6b6b; }
