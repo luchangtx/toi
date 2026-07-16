@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>联机五子棋</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(120deg, #c9d6ff 0%, #e2e2e2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+        .game-container {
+            width: 100%;
+            max-width: 450px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 20px;
+            padding: 25px 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+        h1 {
+            text-align: center;
+            color: #3f51b5;
+            font-size: 28px;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        /* 房间选择区域 */
+        .room-select {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .room-id-input {
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .room-id-input:focus {
+            border-color: #3f51b5;
+        }
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(to right, #3f51b5, #5c6bc0);
+            color: white;
+            box-shadow: 0 3px 10px rgba(63,81,181,0.3);
+        }
+        .btn-primary:hover, .btn-primary:active {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(63,81,181,0.4);
+        }
+        .btn-secondary {
+            background: #fff;
+            color: #666;
+            border: 2px solid #ddd;
+        }
+        .btn-secondary:hover {
+            background: #f5f5f5;
+        }
+        .btn-danger {
+            background: linear-gradient(to right, #f44336, #e57373);
+            color: white;
+            box-shadow: 0 3px 10px rgba(244,67,54,0.3);
+        }
+        .status-bar {
+            text-align: center;
+            padding: 10px;
+            background: linear-gradient(to right, #f8f0ff, #f0f9ff);
+            border-radius: 10px;
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        .room-id-display {
+            background: #e8eaf6;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .room-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .room-id {
+            font-size: 22px;
+            font-weight: bold;
+            color: #3f51b5;
+            letter-spacing: 1px;
+        }
+        /* 棋盘区域 */
+        .board-container {
+            position: relative;
+            aspect-ratio: 1/1;
+            background: #f5d59a;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+        .board-grid {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            gap: 0;
+            position: relative;
+        }
+        .cell {
+            background: transparent;
+            cursor: pointer;
+            position: relative;
+        }
+        /* 棋盘线 */
+        .cell::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #6d4c41;
+        }
+        .cell::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: #6d4c41;
+        }
+        /* 去掉边缘多余的线 */
+        .cell[data-row="0"]::after { top: 50%; }
+        .cell[data-row="14"]::after { bottom: 50%; }
+        .cell[data-col="0"]::before { left: 50%; }
+        .cell[data-col="14"]::before { right: 50%; }
+        /* 棋子样式 */
+        .piece {
+            position: absolute;
+            width: 85%;
+            height: 85%;
+            top: 7.5%;
+            left: 7.5%;
+            border-radius: 50%;
+            z-index: 2;
+            animation: drop 0.2s ease;
+        }
+        @keyframes drop {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .piece-black {
+            background: radial-gradient(circle at 30% 30%, #666, #222);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+        }
+        .piece-white {
+            background: radial-gradient(circle at 30% 30%, #fff, #e0e0e0);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+        }
+        .piece-last::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f44336;
+        }
+        .cell:hover::before, .cell:hover::after {
+            background: #3f51b5;
+        }
+        /* 隐藏类 */
+        .hidden {
+            display: none !important;
+        }
+        /* 响应式 */
+        @media (max-width: 360px) {
+            .btn {
+                padding: 10px 18px;
+                font-size: 14px;
+            }
+            .room-id {
+                font-size: 18px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🏁 联机五子棋</h1>
+
+        <!-- 房间选择/状态区域 -->
+        <div id="roomArea">
+            <!-- 创建/加入选择 -->
+            <div class="room-select">
+                <button class="btn btn-primary" onclick="createRoom()">创建房间</button>
+                <div style="text-align: center; color: #757575; font-size: 13px;">或输入房间号加入</div>
+                <input type="text" class="room-id-input" id="joinRoomId" placeholder="输入6位房间号">
+                <button class="btn btn-secondary" onclick="joinRoom()">加入房间</button>
+            </div>
+            <!-- 已有房间信息，默认隐藏 -->
+            <div id="roomInfo" class="hidden">
+                <div class="room-id-display">
+                    <div class="room-label">房间号（发给好友即可联机）</div>
+                    <div class="room-id" id="currentRoomId">-</div>
+                </div>
+                <div class="status-bar" id="statusText">等待对手加入...</div>
+            </div>
+        </div>
+
+        <!-- 游戏区域，默认隐藏 -->
+        <div id="gameArea" class="hidden">
+            <div class="board-container">
+                <div class="board-grid" id="boardGrid"></div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-secondary" onclick="restartGame()">重新开始</button>
+                <button class="btn btn-danger" onclick="surrender()">认输</button>
+                <button class="btn btn-primary" onclick="disconnect()">退出房间</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态变量
+        let peer = null;
+        let conn = null;
+        let isHost = false;
+        let myColor = null; // 'black' or 'white'
+        let currentTurn = 'black';
+        let board = Array(15).fill().map(() => Array(15).fill(null));
+        let gameStarted = false;
+        let winner = null;
+        let lastMove = null;
+
+        // 初始化棋盘
+        function initBoard() {
+            const grid = document.getElementById('boardGrid');
+            grid.innerHTML = '';
+            board = Array(15).fill().map(() => Array(15).fill(null));
+            winner = null;
+            lastMove = null;
+            document.querySelectorAll('.status-bar').forEach(el => el.textContent = gameStarted ? `你执${myColor === 'black' ? '黑' : '白'}棋，${currentTurn === myColor ? '你的回合' : '对手回合'}` : '等待开始');
+
+            for (let row = 0; row < 15; row++) {
+                for (let col = 0; col < 15; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.onclick = () => handleCellClick(row, col);
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        // 创建房间
+        function createRoom() {
+            if (peer) peer.destroy();
+            isHost = true;
+            peer = new Peer(null, { debug: 0 });
+
+            peer.on('open', (id) => {
+                document.querySelector('.room-select').classList.add('hidden');
+                document.getElementById('roomInfo').classList.remove('hidden');
+                document.getElementById('currentRoomId').textContent = id;
+
+                peer.on('connection', (connection) => {
+                    if (conn) {
+                        connection.close();
+                        return;
+                    }
+                    conn = connection;
+                    setupConnection();
+                    myColor = 'black';
+                    gameStarted = true;
+                    currentTurn = 'black';
+                    initBoard();
+                    document.getElementById('gameArea').classList.remove('hidden');
+                    document.getElementById('roomArea').classList.add('hidden');
+                    document.getElementById('statusText').textContent = '你执黑棋，轮到你下';
+                });
+            });
+
+            peer.on('error', (err) => {
+                if (err.type === 'unavailable-id') {
+                    alert('房间创建失败，请重试');
+                    location.reload();
+                } else {
+                    alert('连接出错：' + err.message);
+                    location.reload();
+                }
+            });
+        }
+
+        // 加入房间
+        function joinRoom() {
+            const roomId = document.getElementById('joinRoomId').value.trim();
+            if (!roomId) {
+                alert('请输入房间号');
+                return;
+            }
+
+            if (peer) peer.destroy();
+            isHost = false;
+            peer = new Peer(null, { debug: 0 });
+
+            peer.on('open', () => {
+                conn = peer.connect(roomId, { reliable: true });
+                setupConnection();
+
+                conn.on('open', () => {
+                    myColor = 'white';
+                    gameStarted = true;
+                    currentTurn = 'black';
+                    initBoard();
+                    document.getElementById('roomArea').classList.add('hidden');
+                    document.getElementById('gameArea').classList.remove('hidden');
+                    document.getElementById('statusText').textContent = '你执白棋，对手先下';
+                });
+            });
+
+            peer.on('error', (err) => {
+                alert('房间号不存在或连接失败，请检查');
+                location.reload();
+            });
+        }
+
+        // 配置连接
+        function setupConnection() {
+            conn.on('data', (data) => {
+                if (data.type === 'move') {
+                    const { row, col } = data;
+                    board[row][col] = currentTurn;
+                    lastMove = { row, col };
+                    renderPieces();
+                    if (checkWin(row, col, currentTurn)) {
+                        winner = currentTurn;
+                        showGameEnd(winner === myColor ? '🎉 你赢了！' : '😅 你输了');
+                    } else if (checkDraw()) {
+                        showGameEnd('🤝 平局！');
+                    } else {
+                        currentTurn = currentTurn === 'black' ? 'white' : 'black';
+                        document.getElementById('statusText').textContent = `你执${myColor === 'black' ? '黑' : '白'}棋，${currentTurn === myColor ? '你的回合' : '对手回合'}`;
+                    }
+                } else if (data.type === 'restart') {
+                    currentTurn = 'black';
+                    winner = null;
+                    initBoard();
+                    alert('对手重新开始了一局');
+                } else if (data.type === 'surrender') {
+                    showGameEnd('🎉 对手认输了，你赢了！');
+                }
+            });
+
+            conn.on('close', () => {
+                alert('对手已断开连接');
+                location.reload();
+            });
+        }
+
+        // 处理点击下棋
+        function handleCellClick(row, col) {
+            if (!gameStarted || winner || currentTurn !== myColor || board[row][col]) return;
+
+            // 下棋并同步
+            board[row][col] = myColor;
+            lastMove = { row, col };
+            conn.send({ type: 'move', row, col });
+            renderPieces();
+
+            // 判断胜负
+            if (checkWin(row, col, myColor)) {
+                winner = myColor;
+                showGameEnd('🎉 你赢了！');
+            } else if (checkDraw()) {
+                showGameEnd('🤝 平局！');
+            } else {
+                currentTurn = currentTurn === 'black' ? 'white' : 'black';
+                document.getElementById('statusBar').textContent = `你执${myColor === 'black' ? '黑' : '白'}棋，对手回合`;
+            }
+        }
+
+        // 判断连五
+        function checkWin(row, col, color) {
+            const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+            for (let [dr, dc] of dirs) {
+                let count = 1;
+                for (let i = 1; i < 5; i++) {
+                    const nr = row + dr*i, nc = col + dc*i;
+                    if (nr<0||nr>=15||nc<0||nc>=15||board[nr][nc]!==color) break;
+                    count++;
+                }
+                for (let i = 1; i < 5; i++) {
+                    const nr = row - dr*i, nc = col - dc*i;
+                    if (nr<0||nr>=15||nc<0||nc>=15||board[nr][nc]!==color) break;
+                    count++;
+                }
+                if (count >=5) return true;
+            }
+            return false;
+        }
+
+        // 判断平局
+        function checkDraw() {
+            for (let row=0;row<15;row++) {
+                for (let col=0;col<15;col++) {
+                    if (!board[row][col]) return false;
+                }
+            }
+            return true;
+        }
+
+        // 渲染棋子
+        function renderPieces() {
+            document.querySelectorAll('.piece').forEach(el => el.remove());
+            for (let row=0;row<15;row++) {
+                for (let col=0;col<15;col++) {
+                    if (board[row][col]) {
+                        const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+                        const piece = document.createElement('div');
+                        piece.className = `piece piece-${board[row][col]}${lastMove && lastMove.row===row && lastMove.col===col ? ' piece-last' : ''}`;
+                        cell.appendChild(piece);
+                    }
+                }
+            }
+        }
+
+        // 重新开始
+        function restartGame() {
+            if (gameStarted && conn.open) {
+                conn.send({ type: 'restart' });
+            }
+            currentTurn = 'black';
+            winner = null;
+            initBoard();
+        }
+
+        // 认输
+        function surrender() {
+            if (confirm('确定认输吗？')) {
+                if (gameStarted && conn.open) {
+                    conn.send({ type: 'surrender' });
+                }
+                showGameEnd('😅 你认输了');
+            }
+        }
+
+        // 显示游戏结束
+        function showGameEnd(msg) {
+            document.getElementById('statusText').textContent = msg;
+            gameStarted = false;
+        }
+
+        // 断开连接
+        function disconnect() {
+            if (confirm('确定退出房间吗？')) {
+                if (peer) peer.destroy();
+                location.reload();
+            }
+        }
+
+        // 初始化界面
+        initBoard();
+    </script>
+</body>
+</html>

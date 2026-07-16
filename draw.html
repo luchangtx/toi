@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>你画我猜 - P2P联机版</title>
+<style>
+  :root {
+    --bg: #070711;
+    --bg-2: #0c0a1a;
+    --surface: rgba(255,255,255,0.045);
+    --surface-muted: rgba(255,255,255,0.06);
+    --surface-raised: rgba(255,255,255,0.10);
+    --text-primary: #f5f7ff;
+    --text-secondary: #b9c0e0;
+    --text-tertiary: #7a82a8;
+    --text-quaternary: #4a5078;
+    --border: rgba(255,255,255,0.09);
+    --border-strong: rgba(255,255,255,0.16);
+    --positive: #34d399;
+    --danger: #fb5a78;
+    --warning: #fbbf24;
+    --accent: #22d3ee;
+    --neon-cyan: #22d3ee;
+    --neon-purple: #a855f7;
+    --neon-pink: #ec4899;
+    --grad: linear-gradient(135deg, #22d3ee 0%, #a855f7 50%, #ec4899 100%);
+    --grad-soft: linear-gradient(135deg, rgba(34,211,238,0.16), rgba(168,85,247,0.16));
+    --glow-cyan: 0 0 22px rgba(34,211,238,0.45);
+    --glow-purple: 0 0 26px rgba(168,85,247,0.5);
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-lg: 18px;
+    --shadow: 0 8px 30px rgba(0,0,0,0.45);
+    --page-bg:
+      radial-gradient(900px 600px at 12% -10%, rgba(168,85,247,0.22), transparent 60%),
+      radial-gradient(800px 600px at 92% 110%, rgba(34,211,238,0.18), transparent 60%),
+      radial-gradient(700px 500px at 50% 50%, rgba(236,72,153,0.10), transparent 60%),
+      linear-gradient(160deg, #070711, #0c0a1a 60%, #08060f);
+    --chat-bg: rgba(0,0,0,0.25);
+    --code-bg: rgba(0,0,0,0.35);
+    --card-solid: rgba(18,16,32,0.82);
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    --font-mono: "SF Mono", "Fira Code", "Consolas", monospace;
+  }
+  [data-theme="light"] {
+    --bg: #eef1f8; --bg-2: #e7ebf5;
+    --surface: rgba(255,255,255,0.72);
+    --surface-muted: rgba(246,248,252,0.85);
+    --surface-raised: rgba(255,255,255,0.92);
+    --text-primary: #181b2a;
+    --text-secondary: #454b66;
+    --text-tertiary: #878da8;
+    --text-quaternary: #b6bcd2;
+    --border: rgba(20,24,42,0.10);
+    --border-strong: rgba(20,24,42,0.16);
+    --shadow: 0 8px 28px rgba(40,50,90,0.12);
+    --page-bg:
+      radial-gradient(900px 600px at 12% -10%, rgba(168,85,247,0.10), transparent 60%),
+      radial-gradient(800px 600px at 92% 110%, rgba(34,211,238,0.10), transparent 60%),
+      radial-gradient(700px 500px at 50% 50%, rgba(236,72,153,0.06), transparent 60%),
+      linear-gradient(160deg, #f5f7fd, #eef1f8 60%, #e9ecf6);
+    --chat-bg: rgba(246,248,252,0.85);
+    --code-bg: rgba(244,246,252,0.9);
+    --card-solid: rgba(255,255,255,0.9);
+    --glow-cyan: 0 0 18px rgba(34,211,238,0.3);
+    --glow-purple: 0 0 22px rgba(168,85,247,0.3);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background: var(--page-bg);
+    background-attachment: fixed;
+  }
+  @keyframes gradMove { to { background-position: 300% 0; } }
+  @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 20px rgba(168,85,247,0.30); } 50% { box-shadow: 0 0 34px rgba(34,211,238,0.55); } }
+  #app { width: 100%; max-width: 1200px; margin: 0 auto; padding: 16px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* 主题切换按钮 */
+  .theme-toggle {
+    position: fixed; top: 16px; right: 16px; z-index: 300;
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 1px solid var(--border-strong); background: var(--surface);
+    font-size: 18px; cursor: pointer; line-height: 1;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    box-shadow: var(--shadow); transition: all .2s ease;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .theme-toggle:hover { transform: rotate(18deg) scale(1.08); border-color: var(--neon-cyan); box-shadow: 0 0 18px rgba(34,211,238,0.4); }
+  .theme-toggle .ico-sun { display: none; }
+  [data-theme="light"] .theme-toggle .ico-sun { display: inline; }
+  [data-theme="light"] .theme-toggle .ico-moon { display: none; }
+
+  /* ===== MENU ===== */
+  .menu-wrap { text-align: center; padding-top: 40px; }
+  .menu-title {
+    font-size: 42px; font-weight: 800; margin-bottom: 6px; letter-spacing: 3px;
+    background: linear-gradient(135deg, #22d3ee, #a855f7, #ec4899, #22d3ee);
+    background-size: 300% 100%;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+    animation: gradMove 7s linear infinite;
+    filter: drop-shadow(0 0 22px rgba(168,85,247,0.45));
+  }
+  .menu-sub {
+    color: var(--text-tertiary); font-size: 14px; margin-bottom: 34px;
+    letter-spacing: 2px; font-weight: 500;
+  }
+  .btn {
+    display: block; width: 100%; max-width: 280px; margin: 0 auto 12px;
+    padding: 14px 24px; border-radius: var(--radius-md);
+    border: 1px solid var(--border-strong); background: var(--surface);
+    color: var(--text-primary); font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all .2s ease; box-shadow: var(--shadow);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .btn:hover { background: var(--surface-raised); transform: translateY(-2px); border-color: var(--neon-cyan); box-shadow: 0 8px 30px rgba(34,211,238,0.25); }
+  .btn:active { transform: translateY(0); }
+  .btn-primary { background: var(--grad); color: #07060f; border-color: transparent; font-weight: 700; box-shadow: var(--glow-purple); }
+  .btn-primary:hover { filter: brightness(1.08); box-shadow: 0 0 34px rgba(168,85,247,0.65); border-color: transparent; }
+  .btn-small { display: inline-block; width: auto; padding: 8px 16px; font-size: 13px; margin: 0 4px; }
+  .info-box {
+    max-width: 340px; margin: 24px auto 0; padding: 16px;
+    border-radius: var(--radius-md); background: var(--surface-muted);
+    border: 1px solid var(--border); text-align: left;
+  }
+  .info-box h3 { font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+  .info-box p { font-size: 12px; color: var(--text-tertiary); line-height: 1.6; }
+
+  /* ===== NET SCREENS ===== */
+  .net-wrap { max-width: 420px; margin: 0 auto; padding-top: 20px; }
+  .net-card {
+    padding: 18px; border-radius: var(--radius-md);
+    border: 1px solid var(--border-strong); background: var(--surface);
+    margin-bottom: 12px; box-shadow: var(--shadow);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .net-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .net-card p { font-size: 12px; color: var(--text-tertiary); margin-bottom: 14px; }
+  .code-area {
+    width: 100%; padding: 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--code-bg);
+    color: var(--neon-cyan); font-size: 11px;
+    font-family: var(--font-mono); resize: none;
+    box-sizing: border-box; margin-bottom: 8px; line-height: 1.5;
+    word-break: break-all; text-shadow: 0 0 8px rgba(34,211,238,0.4);
+  }
+  .code-area:focus { outline: none; border-color: var(--neon-cyan); box-shadow: 0 0 18px rgba(34,211,238,0.25); }
+  .status { font-size: 12px; color: var(--text-tertiary); margin-top: 10px; text-align: center; }
+  .status.connected { color: var(--positive); }
+  .status.error { color: var(--danger); }
+  .status.waiting { color: var(--warning); }
+  .back-btn {
+    display: block; margin: 16px auto 0; padding: 8px 16px;
+    border: none; background: transparent; color: var(--text-tertiary);
+    font-size: 13px; cursor: pointer;
+  }
+  .back-btn:hover { color: var(--text-secondary); }
+
+  /* ===== GAME LAYOUT ===== */
+  .game-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px; padding: 10px 16px;
+    border-radius: var(--radius-md); background: var(--surface);
+    border: 1px solid var(--border-strong);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+  }
+  .game-header .left { font-size: 14px; font-weight: 600; }
+  .game-header .center { text-align: center; }
+  .game-header .timer { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--neon-cyan); text-shadow: 0 0 14px rgba(34,211,238,0.55); }
+  .game-header .round-info { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; letter-spacing: 1px; }
+  .game-header .right { font-size: 14px; font-weight: 600; text-align: right; color: var(--neon-pink); }
+  .word-display {
+    text-align: center; font-size: 19px; font-weight: 700;
+    margin-bottom: 10px; padding: 12px;
+    border-radius: var(--radius-md); background: var(--surface);
+    border: 1px solid var(--border-strong); letter-spacing: 8px;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+  }
+  .word-display.drawing { color: var(--neon-cyan); letter-spacing: 3px; text-shadow: 0 0 14px rgba(34,211,238,0.5); }
+  .word-display.guessing { color: var(--text-secondary); }
+
+  .game-body {
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .canvas-wrap {
+    flex: 1; min-width: 280px; position: relative;
+    border-radius: var(--radius-md); overflow: hidden;
+    border: 1px solid var(--border-strong); background: var(--surface);
+    box-shadow: 0 0 0 1px rgba(34,211,238,0.15), 0 10px 40px rgba(0,0,0,0.5), 0 0 30px rgba(168,85,247,0.18);
+  }
+  #draw-canvas {
+    display: block; width: 100%; touch-action: none;
+    cursor: crosshair; background: #e8ecf3;
+    aspect-ratio: 4 / 3;
+  }
+  .hint-row { text-align: center; margin: 6px 0 2px; }
+  .canvas-overlay {
+    position: absolute; inset: 0; display: flex;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.5); color: #fff;
+    font-size: 18px; font-weight: 600; pointer-events: none;
+    opacity: 0; transition: opacity .3s;
+  }
+  .canvas-overlay.show { opacity: 1; }
+
+  .sidebar {
+    width: 240px; min-width: 200px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .panel {
+    border-radius: var(--radius-md); border: 1px solid var(--border-strong);
+    background: var(--surface); padding: 12px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .panel-title {
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  /* Tools */
+  .tools-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  }
+  .tool-btn {
+    aspect-ratio: 1; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface-muted);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all .15s; font-size: 16px;
+  }
+  .tool-btn:hover { background: var(--surface-raised); }
+  .tool-btn:hover { background: var(--surface-raised); border-color: var(--neon-cyan); box-shadow: 0 0 14px rgba(34,211,238,0.25); }
+  .tool-btn.active { border-color: var(--neon-cyan); background: rgba(34,211,238,0.14); box-shadow: 0 0 16px rgba(34,211,238,0.35); }
+  .color-swatch {
+    width: 100%; aspect-ratio: 1; border-radius: var(--radius-sm);
+    border: 2px solid transparent; cursor: pointer;
+    transition: transform .15s;
+  }
+  .color-swatch:hover { transform: scale(1.1); }
+  .color-swatch.active { border-color: #fff; box-shadow: 0 0 14px rgba(255,255,255,0.6); transform: scale(1.08); }
+  .size-slider {
+    width: 100%; margin-top: 6px;
+    accent-color: var(--text-primary);
+  }
+
+  /* Chat */
+  .chat-box {
+    flex: 1; min-height: 180px; max-height: 300px;
+    overflow-y: auto; padding: 10px;
+    border-radius: var(--radius-sm); background: var(--chat-bg);
+    border: 1px solid var(--border);
+    font-size: 13px; line-height: 1.5;
+  }
+  .chat-box::-webkit-scrollbar { width: 8px; }
+  .chat-box::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.5); border-radius: 8px; }
+  .chat-box::-webkit-scrollbar-track { background: transparent; }
+  .chat-msg { margin-bottom: 6px; word-break: break-word; }
+  .chat-msg .name { font-weight: 600; color: var(--text-secondary); }
+  .chat-msg .guess { color: var(--text-primary); }
+  .chat-msg .system { color: var(--text-tertiary); font-style: italic; }
+  .chat-msg .correct { color: var(--positive); font-weight: 600; }
+  .chat-input-wrap {
+    display: flex; gap: 6px; margin-top: 8px;
+  }
+  .chat-input {
+    flex: 1; padding: 8px 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface-muted);
+    color: var(--text-primary); font-size: 13px; font-family: var(--font-sans);
+  }
+  .chat-input:focus { outline: none; border-color: var(--neon-cyan); box-shadow: 0 0 16px rgba(34,211,238,0.3); }
+
+  /* Players */
+  .player-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .player-row:last-child { border-bottom: none; }
+  .player-row .name { font-size: 13px; font-weight: 500; }
+  .player-row .score { font-size: 13px; font-weight: 600; color: var(--positive); }
+  .player-row .status { font-size: 11px; color: var(--text-tertiary); }
+  .player-row .status.drawing { color: var(--warning); font-weight: 600; }
+
+  /* Result overlay */
+  .result-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+  }
+  .result-overlay.show { display: flex; }
+  .result-card {
+    background: var(--card-solid); border-radius: var(--radius-lg);
+    padding: 34px; text-align: center; max-width: 360px; width: 90%;
+    border: 1px solid var(--border-strong);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 40px rgba(168,85,247,0.25);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  }
+  .result-card h2 { font-size: 24px; margin-bottom: 8px; }
+  .result-card p { color: var(--text-secondary); font-size: 14px; margin-bottom: 20px; }
+  .result-scores { margin-bottom: 20px; }
+  .result-score-row {
+    display: flex; justify-content: space-between; padding: 8px 16px;
+    border-radius: var(--radius-sm); margin-bottom: 6px;
+  }
+  .result-score-row.winner { background: color-mix(in srgb, var(--positive) 10%, var(--surface)); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+    padding: 12px 22px; border-radius: var(--radius-lg);
+    background: var(--grad); color: #07060f;
+    font-size: 13px; font-weight: 700; z-index: 200;
+    opacity: 0; transition: all .3s ease; pointer-events: none;
+    box-shadow: var(--glow-purple);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .game-body { flex-direction: column; }
+    .sidebar { width: 100%; }
+    .menu-title { font-size: 26px; }
+    #app { padding: 10px; }
+  }
+
+  /* 大屏:游戏屏填满视口高度,画板纵向撑满(不再被 4:3 限高导致下方画不了) */
+  @media (min-width: 641px) {
+    #scr-game.active {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 32px);   /* 精确填满视口(减去 #app 上下内边距) */
+      overflow: hidden;            /* 永不触发页面滚动条 */
+    }
+    #scr-game .game-body { flex: 1 1 0; min-height: 0; overflow: hidden; }  /* 占满剩余高度,侧栏溢出在此裁剪 */
+    /* canvas-wrap 拉伸到 game-body 高度;画布绝对定位填满它,最大化显示且不越界 */
+    #scr-game .canvas-wrap { min-height: 0; align-self: stretch; }
+    #draw-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    /* 侧栏自适应:聊天区缩小并内部滚动,工具/玩家面板始终可见,不溢出、不挡退出按钮 */
+    #scr-game .sidebar { min-height: 0; }
+    #scr-game .chat-box { max-height: none; min-height: 0; flex: 1 1 0; }
+  }
+</style>
+<script>
+  (function(){ try { var t = localStorage.getItem('dg-theme') || 'dark'; document.documentElement.setAttribute('data-theme', t); } catch(e){ document.documentElement.setAttribute('data-theme','dark'); } })();
+</script>
+</head>
+<body>
+<button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="切换主题">
+  <span class="ico-moon">🌙</span><span class="ico-sun">☀️</span>
+</button>
+<div id="app">
+
+<!-- ===== MENU ===== -->
+<div id="scr-menu" class="screen active">
+  <div class="menu-wrap">
+    <h1 class="menu-title">你画我猜</h1>
+    <p class="menu-sub">Draw & Guess — P2P Edition</p>
+    <button class="btn" onclick="startGame('practice')">练习模式</button>
+    <button class="btn" onclick="startGame('local')">本地双人</button>
+    <button class="btn" onclick="showScreen('scr-net-menu')">联机对战 (P2P)</button>
+    <div class="info-box">
+      <h3>怎么玩</h3>
+      <p>系统给出词语，一人画画，另一人猜词。猜对得分，然后交换角色。联机版通过 WebRTC 点对点直连，无需服务器，同一 WiFi 下即可对战。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== NET MENU ===== -->
+<div id="scr-net-menu" class="screen">
+  <div class="net-wrap">
+    <h1 class="menu-title">联机对战</h1>
+    <p class="menu-sub">选择你的角色</p>
+    <div class="net-card">
+      <h3>创建房间（房主）</h3>
+      <p>生成连接码，通过聊天软件发给好友</p>
+      <button class="btn btn-primary" onclick="hostStart()">创建房间</button>
+    </div>
+    <div class="net-card">
+      <h3>加入房间（访客）</h3>
+      <p>粘贴房主发来的连接码</p>
+      <textarea class="code-area" id="join-code" rows="3" placeholder="在此粘贴连接码..."></textarea>
+      <button class="btn" onclick="guestStart()">加入房间</button>
+    </div>
+    <button class="back-btn" onclick="showScreen('scr-menu')">返回主菜单</button>
+  </div>
+</div>
+
+<!-- ===== HOST WAIT ===== -->
+<div id="scr-host" class="screen">
+  <div class="net-wrap">
+    <h1 class="menu-title">创建房间</h1>
+    <p class="menu-sub">三步完成连接</p>
+    <div class="net-card">
+      <h3>Step 1 — 发送连接码给好友</h3>
+      <p>复制下方代码，通过微信/QQ等发给好友</p>
+      <textarea class="code-area" id="host-offer" readonly rows="4"></textarea>
+      <button class="btn btn-small" onclick="copyText('host-offer')">复制连接码</button>
+    </div>
+    <div class="net-card">
+      <h3>Step 2 — 粘贴好友的回复码</h3>
+      <p>好友加入后会生成回复码，粘贴到下方</p>
+      <textarea class="code-area" id="host-answer-in" rows="3" placeholder="在此粘贴好友的回复码..."></textarea>
+      <button class="btn btn-primary btn-small" onclick="hostConnect()">建立连接</button>
+    </div>
+    <p class="status" id="host-status">等待好友加入...</p>
+    <button class="back-btn" onclick="resetNet(); showScreen('scr-menu')">取消</button>
+  </div>
+</div>
+
+<!-- ===== GUEST WAIT ===== -->
+<div id="scr-guest" class="screen">
+  <div class="net-wrap">
+    <h1 class="menu-title">加入房间</h1>
+    <p class="menu-sub">等待房主确认</p>
+    <div class="net-card">
+      <h3>Step 2 — 发送回复码给房主</h3>
+      <p>复制下方代码，发回给房主完成连接</p>
+      <textarea class="code-area" id="guest-answer" readonly rows="4"></textarea>
+      <button class="btn btn-small" onclick="copyText('guest-answer')">复制回复码</button>
+    </div>
+    <p class="status" id="guest-status">等待房主建立连接...</p>
+    <button class="back-btn" onclick="resetNet(); showScreen('scr-menu')">取消</button>
+  </div>
+</div>
+
+<!-- ===== GAME ===== -->
+<div id="scr-game" class="screen">
+  <div class="game-header">
+    <div class="left">P1: <span id="h-p1">0</span></div>
+    <div class="center">
+      <div class="timer" id="game-timer">60</div>
+      <div class="round-info">第 <span id="round-num">1</span> / <span id="total-rounds">5</span> 轮</div>
+    </div>
+    <div class="right">P2: <span id="h-p2">0</span></div>
+  </div>
+
+  <div class="word-display guessing" id="word-display">等待开始...</div>
+  <div class="hint-row" id="hint-row" style="display:none">
+    <button class="btn btn-small" id="btn-hint" onclick="useHint()">💡 提示（揭开一个字）</button>
+  </div>
+
+  <div class="game-body">
+    <div class="canvas-wrap">
+      <canvas id="draw-canvas" width="600" height="450"></canvas>
+      <div class="canvas-overlay" id="canvas-overlay"></div>
+    </div>
+
+    <div class="sidebar">
+      <!-- Tools -->
+      <div class="panel" id="tools-panel">
+        <div class="panel-title">画笔工具</div>
+        <div class="tools-grid" id="color-palette">
+          <div class="color-swatch active" style="background:#1a1a1a" data-color="#1a1a1a"></div>
+          <div class="color-swatch" style="background:#ff3b30" data-color="#ff3b30"></div>
+          <div class="color-swatch" style="background:#ff9500" data-color="#ff9500"></div>
+          <div class="color-swatch" style="background:#ffcc00" data-color="#ffcc00"></div>
+          <div class="color-swatch" style="background:#34c759" data-color="#34c759"></div>
+          <div class="color-swatch" style="background:#007aff" data-color="#007aff"></div>
+          <div class="color-swatch" style="background:#5856d6" data-color="#5856d6"></div>
+          <div class="color-swatch" style="background:#af52de" data-color="#af52de"></div>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:6px;">
+          <button class="tool-btn active" id="tool-pen" title="画笔">✏️</button>
+          <button class="tool-btn" id="tool-eraser" title="橡皮擦">🧼</button>
+          <button class="tool-btn" id="tool-clear" title="清屏">🗑️</button>
+          <button class="tool-btn" id="tool-undo" title="撤销">↩️</button>
+        </div>
+        <div style="margin-top:8px;">
+          <label style="font-size:11px;color:var(--text-tertiary)">笔刷大小</label>
+          <input type="range" class="size-slider" id="brush-size" min="2" max="20" value="4">
+        </div>
+      </div>
+
+      <!-- Chat / Guess -->
+      <div class="panel" style="flex:1; display:flex; flex-direction:column;">
+        <div class="panel-title">猜词 / 聊天</div>
+        <div class="chat-box" id="chat-box"></div>
+        <div class="chat-input-wrap">
+          <input type="text" class="chat-input" id="chat-input" placeholder="输入猜测..." maxlength="20">
+          <button class="btn btn-small" onclick="submitGuess()">发送</button>
+        </div>
+      </div>
+
+      <!-- Players -->
+      <div class="panel">
+        <div class="panel-title">玩家</div>
+        <div class="player-row">
+          <div>
+            <div class="name">玩家1 <span id="p1-role"></span></div>
+            <div class="status" id="p1-status">等待中</div>
+          </div>
+          <div class="score" id="s-p1">0</div>
+        </div>
+        <div class="player-row">
+          <div>
+            <div class="name">玩家2 <span id="p2-role"></span></div>
+            <div class="status" id="p2-status">等待中</div>
+          </div>
+          <div class="score" id="s-p2">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center; margin-top:14px;">
+    <button class="btn btn-small" onclick="quitGame()">退出游戏</button>
+  </div>
+</div>
+
+<!-- ===== RESULT OVERLAY ===== -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-card">
+    <h2 id="result-title">游戏结束</h2>
+    <p id="result-desc">最终得分</p>
+    <div class="result-scores" id="result-scores"></div>
+    <div class="actions">
+      <button class="btn btn-primary btn-small" onclick="nextRound()" id="btn-next">下一轮</button>
+      <button class="btn btn-small" onclick="quitGame()">主菜单</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+</div>
+
+<script>
+// ==================== CONFIG ====================
+const WORDS = [
+  // 食物饮品
+  '苹果','香蕉','橙子','西瓜','葡萄','草莓','樱桃','柠檬',
+  '菠萝','芒果','榴莲','哈密瓜','火龙果','西红柿','青提','杨梅',
+  '蛋糕','披萨','汉堡','面条','饺子','寿司','冰淇淋','巧克力',
+  '火锅','烧烤','糖葫芦','麻辣烫','三明治','寿喜烧','月饼','粽子',
+  '咖啡','奶茶','可乐','啤酒','红酒','豆浆','刨冰','布丁',
+  // 动物
+  '猫','狗','兔子','老虎','狮子','大象','熊猫','企鹅',
+  '长颈鹿','袋鼠','考拉','河马','犀牛','斑马','鳄鱼','刺猬',
+  '海豚','鲨鱼','鲸鱼','章鱼','螃蟹','海星','水母','海马',
+  '孔雀','鹦鹉','猫头鹰','啄木鸟','蝙蝠','松鼠','狐狸','狼',
+  '恐龙','独角兽','龙','凤凰','美人鱼','变色龙','穿山甲',
+  // 自然景观
+  '太阳','月亮','星星','云朵','彩虹','雪花','闪电','火山',
+  '龙卷风','海啸','地震','极光','沙漠','冰川','瀑布','岛屿',
+  '森林','草原','沼泽','峡谷','钟乳石','陨石','月食','日食',
+  // 物品/交通
+  '房子','汽车','飞机','轮船','自行车','火箭','火车','电梯',
+  '热气球','潜水艇','直升机','马车','摩托车','房车','缆车','滑板车',
+  '手机','电脑','电视','相机','耳机','手表','冰箱','空调',
+  '望远镜','显微镜','地球仪','沙漏','指南针','算盘','八音盒','台灯',
+  // 运动/艺术
+  '篮球','足球','网球','游泳','滑雪','跑步','跳舞','唱歌',
+  '冲浪','攀岩','蹦极','射箭','击剑','体操','跳水','滑板',
+  '钢琴','吉他','小提琴','架子鼓','萨克斯','竖琴','二胡','古筝',
+  '油画','雕塑','书法','摄影','芭蕾','魔术','杂技','皮影戏',
+  // 职业
+  '医生','警察','老师','厨师','画家','歌手','运动员','科学家',
+  '宇航员','消防员','飞行员','潜水员','考古学家','程序员','快递员','护士',
+  // 抽象/成语/难词
+  '自由','梦想','勇气','孤独','希望','回忆','秘密','巧合',
+  '悬崖勒马','画蛇添足','守株待兔','亡羊补牢','对牛弹琴','拔苗助长',
+  '井底之蛙','狐假虎威','刻舟求剑','掩耳盗铃','南辕北辙','杯弓蛇影',
+  '画饼充饥','指鹿为马','滥竽充数','东施效颦','黔驴技穷','叶公好龙',
+  '春暖花开','狂风暴雨','电闪雷鸣','冰天雪地','风和日丽','秋高气爽',
+  '螳螂捕蝉','鹬蚌相争','塞翁失马','愚公移山','盲人摸象','自相矛盾',
+  // 节日/时间/天气
+  '春天','夏天','秋天','冬天','早晨','夜晚','雨天','雪天',
+  '春节','中秋','端午','元宵','圣诞','生日','婚礼','毕业',
+  // 日常
+  '眼镜','帽子','鞋子','书包','雨伞','钥匙','镜子','闹钟',
+  '红绿灯','斑马线','路牌','快递','外卖','二维码','密码','Wi-Fi'
+];
+const ROUND_TIME = 90;
+const TOTAL_ROUNDS = 5;
+
+// ==================== STATE ====================
+let gameMode = 'practice';
+let currentRound = 1;
+let scores = { p1: 0, p2: 0 };
+let currentWord = '';
+let drawer = 1; // who is drawing: 1 or 2
+let myPlayer = 1; // in net mode: 1=host, 2=guest
+let timerVal = ROUND_TIME;
+let timerId = null;
+let isDrawing = false;
+let isGameActive = false;
+let guessedCorrectly = false;
+
+// Canvas
+let canvas, ctx;
+let brushColor = '#1a1a1a';
+let brushSize = 4;
+let tool = 'pen'; // pen | eraser
+let isMouseDown = false;
+let lastPos = null;
+let drawHistory = [];
+let historyStep = -1;
+
+// WebRTC
+let pc = null;
+let dc = null;
+let isNetConnected = false;
+let myRole = '';
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ]
+};
+
+// ==================== UTILS ====================
+const $ = id => document.getElementById(id);
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+function randWord() { return WORDS[Math.floor(Math.random() * WORDS.length)]; }
+function pack(obj) { return btoa(JSON.stringify(obj)); }
+function unpack(str) { return JSON.parse(atob(str)); }
+
+// 主题切换(暗夜 / 白昼)
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  try { localStorage.setItem('dg-theme', t); } catch(e){}
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+}
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+function copyText(id) {
+  const el = $(id);
+  el.select();
+  if (navigator.clipboard) navigator.clipboard.writeText(el.value);
+  else document.execCommand('copy');
+  showToast('已复制到剪贴板');
+}
+
+// ==================== CANVAS ====================
+function initCanvas() {
+  canvas = $('draw-canvas');
+  ctx = canvas.getContext('2d');
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // 画板尺寸:缓冲区始终跟随画板实际显示尺寸(切屏/flex 布局变化/窗口缩放都会触发),
+  // 用 setTransform 绝对设置缩放,避免缓冲区与显示尺寸不一致导致只能在顶部一小块画
+  const resize = () => {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(1, Math.round(rect.width * dpr));
+    const h = Math.max(1, Math.round(rect.height * dpr));
+    if (canvas.width !== w) canvas.width = w;   // 尺寸没变就不重置,避免清空已有笔画
+    if (canvas.height !== h) canvas.height = h;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  };
+  resize();
+  requestAnimationFrame(resize);  // 切屏后等 flex 布局稳定再同步一次
+  if (typeof ResizeObserver !== 'undefined') {
+    // 持续监听画板显示尺寸变化,缓冲区永远跟显示尺寸一致
+    if (!canvas._ro) {
+      canvas._ro = new ResizeObserver(() => requestAnimationFrame(resize));
+      canvas._ro.observe(canvas);
+    }
+  } else if (!window._drawResizeBound) {
+    window.addEventListener('resize', resize);
+    window._drawResizeBound = true;
+  }
+
+  // 事件只绑一次,避免重开游戏后重复绑定(多次 startGame 会重入 initCanvas)
+  if (canvas._eventsBound) return;
+  canvas._eventsBound = true;
+
+  // Mouse events
+  canvas.addEventListener('mousedown', e => {
+    if (!canDraw()) return;
+    isMouseDown = true;
+    const pos = getPos(e);
+    lastPos = pos;
+    drawDot(pos);
+  });
+  canvas.addEventListener('mousemove', e => {
+    if (!isMouseDown || !canDraw()) return;
+    const pos = getPos(e);
+    drawLine(lastPos, pos);
+    lastPos = pos;
+  });
+  canvas.addEventListener('mouseup', () => { if (isMouseDown) { isMouseDown = false; saveHistory(); } });
+  canvas.addEventListener('mouseleave', () => { if (isMouseDown) { isMouseDown = false; saveHistory(); } });
+
+  // Touch events
+  canvas.addEventListener('touchstart', e => {
+    if (!canDraw()) return;
+    e.preventDefault();
+    isMouseDown = true;
+    const pos = getTouchPos(e);
+    lastPos = pos;
+    drawDot(pos);
+  }, { passive: false });
+  canvas.addEventListener('touchmove', e => {
+    if (!isMouseDown || !canDraw()) return;
+    e.preventDefault();
+    const pos = getTouchPos(e);
+    drawLine(lastPos, pos);
+    lastPos = pos;
+  }, { passive: false });
+  canvas.addEventListener('touchend', () => { if (isMouseDown) { isMouseDown = false; saveHistory(); } });
+
+  // Tools
+  document.querySelectorAll('.color-swatch').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.color-swatch').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      brushColor = el.dataset.color;
+      tool = 'pen';
+      updateToolUI();
+    });
+  });
+
+  $('tool-pen').addEventListener('click', () => { tool = 'pen'; updateToolUI(); });
+  $('tool-eraser').addEventListener('click', () => { tool = 'eraser'; updateToolUI(); });
+  $('tool-clear').addEventListener('click', () => {
+    if (!canDraw()) return;
+    clearCanvas();
+    if (gameMode === 'net') netSend({ type: 'clear' });
+  });
+  $('tool-undo').addEventListener('click', undo);
+
+  $('brush-size').addEventListener('input', e => { brushSize = parseInt(e.target.value); });
+
+  $('chat-input').addEventListener('keypress', e => {
+    if (e.key === 'Enter') submitGuess();
+  });
+}
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+function getTouchPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const t = e.touches[0];
+  return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+}
+function canDraw() {
+  if (!isGameActive) return false;
+  if (gameMode === 'practice') return true;
+  if (gameMode === 'local') return true; // both can draw in local (pass device)
+  if (gameMode === 'net') {
+    return (myRole === 'host' && drawer === 1) || (myRole === 'guest' && drawer === 2);
+  }
+  return false;
+}
+function updateToolUI() {
+  $('tool-pen').classList.toggle('active', tool === 'pen');
+  $('tool-eraser').classList.toggle('active', tool === 'eraser');
+}
+
+function drawDot(pos) {
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, brushSize / 2, 0, Math.PI * 2);
+  ctx.fillStyle = tool === 'eraser' ? '#e8ecf3' : brushColor;
+  ctx.fill();
+}
+function drawLine(from, to) {
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.lineWidth = brushSize;
+  ctx.strokeStyle = tool === 'eraser' ? '#e8ecf3' : brushColor;
+  ctx.stroke();
+}
+function clearCanvas() {
+  const w = canvas.width / (window.devicePixelRatio || 1);
+  const h = canvas.height / (window.devicePixelRatio || 1);
+  ctx.clearRect(0, 0, w, h);
+  drawHistory = [];
+  historyStep = -1;
+}
+function saveHistory() {
+  historyStep++;
+  if (historyStep < drawHistory.length) {
+    drawHistory.length = historyStep;
+  }
+  drawHistory.push(canvas.toDataURL());
+}
+function undo() {
+  if (!canDraw()) return;
+  if (historyStep > 0) {
+    historyStep--;
+    const img = new Image();
+    img.onload = () => {
+      const w = canvas.width / (window.devicePixelRatio || 1);
+      const h = canvas.height / (window.devicePixelRatio || 1);
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+    };
+    img.src = drawHistory[historyStep];
+    if (gameMode === 'net') netSend({ type: 'undo', step: historyStep });
+  }
+}
+
+// ==================== GAME LOGIC ====================
+// 提示功能:猜词方点提示随机揭开一个字,至少留 1 个不揭
+let hintRevealed = [];
+function maskedWord() {
+  return [...currentWord].map((ch, i) => hintRevealed.includes(i) ? ch : '＿').join(' ');
+}
+function canUseHint() {
+  return isGameActive && ([...currentWord].length - hintRevealed.length) > 1;
+}
+function updateWordDisplay() {
+  const isDrawer = (gameMode === 'practice') || (gameMode === 'local') ||
+                   (gameMode === 'net' && ((myRole === 'host' && drawer === 1) || (myRole === 'guest' && drawer === 2)));
+  const wd = $('word-display');
+  if (isDrawer) {
+    wd.textContent = '你要画：' + currentWord;
+    wd.className = 'word-display drawing';
+    $('hint-row').style.display = 'none';
+  } else {
+    wd.textContent = '猜词：' + maskedWord() + '（' + [...currentWord].length + '字）';
+    wd.className = 'word-display guessing';
+    $('hint-row').style.display = canUseHint() ? 'block' : 'none';
+  }
+}
+function useHint() {
+  if (!canUseHint()) return;
+  const remaining = [];
+  [...currentWord].forEach((_, i) => { if (!hintRevealed.includes(i)) remaining.push(i); });
+  const idx = remaining[Math.floor(Math.random() * remaining.length)];
+  hintRevealed.push(idx);
+  addChat('system', '使用了提示，揭开了一个字');
+  updateWordDisplay();
+}
+function startGame(mode) {
+  $('result-overlay').classList.remove('show');   // 新一局/重开:确保结果弹框关闭
+  gameMode = mode;
+  currentRound = 1;
+  scores = { p1: 0, p2: 0 };
+  drawer = 1;
+  myPlayer = mode === 'net' ? (myRole === 'host' ? 1 : 2) : 1;
+
+  showScreen('scr-game');
+  initCanvas();
+  updateHeader();
+  startRound();
+}
+
+function startRound() {
+  isGameActive = true;
+  guessedCorrectly = false;
+  timerVal = ROUND_TIME;
+  currentWord = randWord();
+
+  clearCanvas();
+  $('chat-box').innerHTML = '';
+  $('round-num').textContent = currentRound;
+  $('total-rounds').textContent = TOTAL_ROUNDS;
+  $('game-timer').textContent = timerVal;
+  $('game-timer').style.color = '';
+
+  hintRevealed = [];
+  updateWordDisplay();
+
+  const isDrawer = (gameMode === 'practice') || (gameMode === 'local') ||
+                   (gameMode === 'net' && ((myRole === 'host' && drawer === 1) || (myRole === 'guest' && drawer === 2)));
+  if (isDrawer) {
+    $('tools-panel').style.opacity = '1';
+    $('tools-panel').style.pointerEvents = 'auto';
+    addChat('system', '轮到你画画了！请画「' + currentWord + '」');
+  } else {
+    $('tools-panel').style.opacity = '0.4';
+    $('tools-panel').style.pointerEvents = 'none';
+    addChat('system', '对手正在画画，快猜！');
+  }
+
+  updatePlayers();
+
+  if (timerId) clearInterval(timerId);
+  timerId = setInterval(() => {
+    timerVal--;
+    $('game-timer').textContent = timerVal;
+    if (timerVal <= 10) $('game-timer').style.color = 'var(--danger)';
+    if (timerVal <= 0) {
+      clearInterval(timerId);
+      endRound(false);
+    }
+  }, 1000);
+
+  // Net: host sends word + scores to guest
+  if (gameMode === 'net' && myRole === 'host') {
+    netSend({ type: 'round', round: currentRound, word: currentWord, drawer, timer: timerVal, scores });
+  }
+}
+
+function endRound(correct) {
+  isGameActive = false;
+  clearInterval(timerId);
+
+  if (correct) {
+    // Both get points: drawer +10, guesser +10
+    scores['p' + (drawer === 1 ? 1 : 2)] += 10;
+    scores['p' + (drawer === 1 ? 2 : 1)] += 10;
+    addChat('system', '答对了！答案是「' + currentWord + '」');
+  } else {
+    addChat('system', '时间到！答案是「' + currentWord + '」');
+  }
+
+  updateHeader();
+  updatePlayers();
+
+  // Show result overlay
+  const overlay = $('result-overlay');
+  const title = $('result-title');
+  const desc = $('result-desc');
+  const scoresDiv = $('result-scores');
+  const btnNext = $('btn-next');
+
+  if (correct) {
+    title.textContent = '答对了！';
+    desc.textContent = '答案是「' + currentWord + '」，双方各得 10 分';
+  } else {
+    title.textContent = '时间到！';
+    desc.textContent = '答案是「' + currentWord + '」';
+  }
+
+  scoresDiv.innerHTML = `
+    <div class="result-score-row ${scores.p1 >= scores.p2 ? 'winner' : ''}">
+      <span>玩家1</span><span>${scores.p1} 分</span>
+    </div>
+    <div class="result-score-row ${scores.p2 > scores.p1 ? 'winner' : ''}">
+      <span>玩家2</span><span>${scores.p2} 分</span>
+    </div>
+  `;
+
+  if (gameMode === 'net' && myRole === 'guest') {
+    btnNext.textContent = currentRound >= TOTAL_ROUNDS ? '等待房主开始新游戏…' : '等待房主开始下一轮…';
+  } else {
+    btnNext.textContent = currentRound >= TOTAL_ROUNDS ? '查看最终结果' : '下一轮';
+  }
+
+  overlay.classList.add('show');
+
+  // 房主把本回合结束信息(含权威分数)同步给访客,修正访客侧分数显示
+  if (gameMode === 'net' && myRole === 'host') {
+    netSend({ type: 'end', scores, word: currentWord });
+  }
+}
+
+function nextRound() {
+  // 联机模式由房主驱动回合,访客不主动推进(防止 drawer / 回合号与房主不同步)
+  if (gameMode === 'net' && myRole === 'guest') return;
+  // 防止快速连点导致回合号 / 画者被推进两次
+  if (isGameActive) return;
+
+  $('result-overlay').classList.remove('show');
+
+  if (currentRound >= TOTAL_ROUNDS) {
+    // Final result
+    const overlay = $('result-overlay');
+    const title = $('result-title');
+    const desc = $('result-desc');
+
+    if (scores.p1 > scores.p2) {
+      title.textContent = '玩家1 获胜！';
+      desc.textContent = '最终比分 ' + scores.p1 + ' : ' + scores.p2;
+    } else if (scores.p2 > scores.p1) {
+      title.textContent = '玩家2 获胜！';
+      desc.textContent = '最终比分 ' + scores.p1 + ' : ' + scores.p2;
+    } else {
+      title.textContent = '平局！';
+      desc.textContent = '最终比分 ' + scores.p1 + ' : ' + scores.p2;
+    }
+    $('btn-next').textContent = '再来一局';
+    $('btn-next').onclick = () => { $('btn-next').onclick = nextRound; startGame(gameMode); };
+    overlay.classList.add('show');
+    // 房主把最终结果同步给访客
+    if (gameMode === 'net' && myRole === 'host') {
+      netSend({ type: 'final', scores });
+    }
+    return;
+  }
+
+  currentRound++;
+  drawer = drawer === 1 ? 2 : 1;
+  startRound();
+}
+
+function submitGuess() {
+  const input = $('chat-input');
+  const text = input.value.trim();
+  if (!text || !isGameActive) return;
+
+  const isDrawer = (gameMode === 'practice') ||
+                   (gameMode === 'local') ||
+                   (gameMode === 'net' && ((myRole === 'host' && drawer === 1) || (myRole === 'guest' && drawer === 2)));
+
+  if (isDrawer) {
+    // Drawer can only chat, not guess
+    addChat('p' + myPlayer, text);
+    if (gameMode === 'net') netSend({ type: 'chat', player: myPlayer, text });
+  } else {
+    // Guesser
+    addChat('p' + myPlayer, text);
+    if (gameMode === 'net') netSend({ type: 'chat', player: myPlayer, text });
+
+    if (!guessedCorrectly && text === currentWord) {
+      guessedCorrectly = true;
+      addChat('system', '回答正确！');
+      if (gameMode === 'net') netSend({ type: 'correct', player: myPlayer });
+      setTimeout(() => endRound(true), 500);
+    }
+  }
+
+  input.value = '';
+}
+
+function addChat(type, text) {
+  const box = $('chat-box');
+  const div = document.createElement('div');
+  div.className = 'chat-msg';
+
+  if (type === 'system') {
+    div.innerHTML = '<span class="system">[系统] ' + text + '</span>';
+  } else if (type === 'correct') {
+    div.innerHTML = '<span class="correct">[系统] ' + text + '</span>';
+  } else {
+    const name = type === 'p1' ? '玩家1' : '玩家2';
+    div.innerHTML = '<span class="name">' + name + ':</span> <span class="guess">' + text + '</span>';
+  }
+
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function updateHeader() {
+  $('h-p1').textContent = scores.p1;
+  $('h-p2').textContent = scores.p2;
+}
+
+function updatePlayers() {
+  $('s-p1').textContent = scores.p1;
+  $('s-p2').textContent = scores.p2;
+
+  const p1Status = $('p1-status');
+  const p2Status = $('p2-status');
+
+  if (drawer === 1) {
+    p1Status.textContent = '正在画...';
+    p1Status.className = 'status drawing';
+    p2Status.textContent = '猜词中';
+    p2Status.className = 'status';
+  } else {
+    p1Status.textContent = '猜词中';
+    p1Status.className = 'status';
+    p2Status.textContent = '正在画...';
+    p2Status.className = 'status drawing';
+  }
+
+  if (gameMode === 'net') {
+    $('p1-role').textContent = myRole === 'host' ? '(你)' : '';
+    $('p2-role').textContent = myRole === 'guest' ? '(你)' : '';
+  } else {
+    $('p1-role').textContent = '';
+    $('p2-role').textContent = '';
+  }
+}
+
+function quitGame() {
+  clearInterval(timerId);
+  isGameActive = false;
+  if (gameMode === 'net') resetNet();
+  $('result-overlay').classList.remove('show');
+  showScreen('scr-menu');
+}
+
+// ==================== WEBRTC P2P ====================
+async function hostStart() {
+  if (!window.RTCPeerConnection) {
+    alert('当前浏览器不支持 WebRTC，请使用 Chrome、Edge 或 Firefox 最新版');
+    return;
+  }
+  myRole = 'host';
+  isNetConnected = false;
+
+  pc = new RTCPeerConnection(ICE_SERVERS);
+  dc = pc.createDataChannel('drawgame', { ordered: true });
+  setupDataChannel();
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  await waitIce(pc);
+
+  $('host-offer').value = pack(pc.localDescription);
+  showScreen('scr-host');
+  $('host-status').textContent = '等待好友加入...';
+  $('host-status').className = 'status';
+}
+
+async function hostConnect() {
+  const val = $('host-answer-in').value.trim();
+  if (!val) { alert('请粘贴好友的回复码'); return; }
+  let answer;
+  try { answer = unpack(val); }
+  catch (e) { alert('回复码格式错误'); return; }
+  try { await pc.setRemoteDescription(answer); }
+  catch (e) { alert('无法建立连接'); return; }
+  $('host-status').textContent = '正在建立连接...';
+  $('host-status').className = 'status waiting';
+}
+
+async function guestStart() {
+  if (!window.RTCPeerConnection) { alert('浏览器不支持 WebRTC'); return; }
+  const val = $('join-code').value.trim();
+  if (!val) { alert('请粘贴连接码'); return; }
+
+  let offer;
+  try { offer = unpack(val); }
+  catch (e) { alert('连接码格式错误'); return; }
+
+  myRole = 'guest';
+  isNetConnected = false;
+
+  pc = new RTCPeerConnection(ICE_SERVERS);
+  pc.ondatachannel = (e) => { dc = e.channel; setupDataChannel(); };
+
+  await pc.setRemoteDescription(offer);
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  await waitIce(pc);
+
+  $('guest-answer').value = pack(pc.localDescription);
+  showScreen('scr-guest');
+  $('guest-status').textContent = '等待房主建立连接...';
+  $('guest-status').className = 'status';
+}
+
+function waitIce(pc) {
+  return new Promise((resolve) => {
+    if (pc.iceGatheringState === 'complete') return resolve();
+    pc.onicegatheringstatechange = () => {
+      if (pc.iceGatheringState === 'complete') resolve();
+    };
+    setTimeout(resolve, 5000);
+  });
+}
+
+function setupDataChannel() {
+  dc.onopen = () => {
+    isNetConnected = true;
+    if (myRole === 'host') {
+      $('host-status').textContent = '连接成功！正在启动游戏...';
+      $('host-status').className = 'status connected';
+      setTimeout(() => startGame('net'), 500);
+    } else {
+      $('guest-status').textContent = '连接成功！等待房主开始...';
+      $('guest-status').className = 'status connected';
+    }
+  };
+
+  dc.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    handleNetMessage(msg);
+  };
+
+  dc.onclose = () => {
+    isNetConnected = false;
+    showToast('连接已断开');
+  };
+}
+
+function handleNetMessage(msg) {
+  if (msg.type === 'round') {
+    // 首次收到回合:把访客从等待页切进游戏(并初始化画板/状态)
+    if (gameMode !== 'net') {
+      gameMode = 'net';
+      myPlayer = myRole === 'guest' ? 2 : 1;
+      showScreen('scr-game');
+      initCanvas();
+    }
+    // 关掉上一回合的结果浮层(访客的浮层由房主的 round 消息统一关闭)
+    $('result-overlay').classList.remove('show');
+    if (msg.scores) { scores = msg.scores; updateHeader(); }
+    currentRound = msg.round;
+    currentWord = msg.word;
+    drawer = msg.drawer;
+    timerVal = msg.timer;
+    // Guest receives round info, starts round
+    isGameActive = true;
+    guessedCorrectly = false;
+    hintRevealed = [];
+    clearCanvas();
+    $('chat-box').innerHTML = '';
+    $('round-num').textContent = currentRound;
+    $('game-timer').textContent = timerVal;
+    updateWordDisplay();
+
+    const isDrawer = (myRole === 'host' && drawer === 1) || (myRole === 'guest' && drawer === 2);
+    if (isDrawer) {
+      $('tools-panel').style.opacity = '1';
+      $('tools-panel').style.pointerEvents = 'auto';
+      addChat('system', '轮到你画画了！请画「' + currentWord + '」');
+    } else {
+      $('tools-panel').style.opacity = '0.4';
+      $('tools-panel').style.pointerEvents = 'none';
+      addChat('system', '对手正在画画，快猜！');
+    }
+    updatePlayers();
+
+    if (timerId) clearInterval(timerId);
+    timerId = setInterval(() => {
+      timerVal--;
+      $('game-timer').textContent = timerVal;
+      if (timerVal <= 10) $('game-timer').style.color = 'var(--danger)';
+      if (timerVal <= 0) { clearInterval(timerId); endRound(false); }
+    }, 1000);
+  }
+  else if (msg.type === 'draw') {
+    // Remote draw
+    ctx.beginPath();
+    ctx.moveTo(msg.from.x, msg.from.y);
+    ctx.lineTo(msg.to.x, msg.to.y);
+    ctx.lineWidth = msg.size;
+    ctx.strokeStyle = msg.color;
+    ctx.stroke();
+  }
+  else if (msg.type === 'dot') {
+    ctx.beginPath();
+    ctx.arc(msg.x, msg.y, msg.size / 2, 0, Math.PI * 2);
+    ctx.fillStyle = msg.color;
+    ctx.fill();
+  }
+  else if (msg.type === 'clear') {
+    clearCanvas();
+  }
+  else if (msg.type === 'chat') {
+    addChat('p' + msg.player, msg.text);
+  }
+  else if (msg.type === 'correct') {
+    guessedCorrectly = true;
+    addChat('system', '回答正确！');
+    setTimeout(() => endRound(true), 500);
+  }
+  else if (msg.type === 'end') {
+    // 房主同步回合结束时的分数/答案给访客,修正访客侧显示
+    if (msg.scores) { scores = msg.scores; updateHeader(); updatePlayers(); }
+    if ($('result-overlay').classList.contains('show')) {
+      if (msg.word) $('result-desc').textContent = '答案是「' + msg.word + '」';
+      $('result-scores').innerHTML = `
+        <div class="result-score-row ${scores.p1 >= scores.p2 ? 'winner' : ''}">
+          <span>玩家1</span><span>${scores.p1} 分</span>
+        </div>
+        <div class="result-score-row ${scores.p2 > scores.p1 ? 'winner' : ''}">
+          <span>玩家2</span><span>${scores.p2} 分</span>
+        </div>`;
+    }
+  }
+  else if (msg.type === 'final') {
+    // 房主同步最终结果给访客
+    if (msg.scores) scores = msg.scores;
+    const fOverlay = $('result-overlay');
+    const fTitle = $('result-title');
+    const fDesc = $('result-desc');
+    if (scores.p1 > scores.p2) fTitle.textContent = '玩家1 获胜！';
+    else if (scores.p2 > scores.p1) fTitle.textContent = '玩家2 获胜！';
+    else fTitle.textContent = '平局！';
+    fDesc.textContent = '最终比分 ' + scores.p1 + ' : ' + scores.p2;
+    $('result-scores').innerHTML = `
+      <div class="result-score-row ${scores.p1 >= scores.p2 ? 'winner' : ''}">
+        <span>玩家1</span><span>${scores.p1} 分</span>
+      </div>
+      <div class="result-score-row ${scores.p2 > scores.p1 ? 'winner' : ''}">
+        <span>玩家2</span><span>${scores.p2} 分</span>
+      </div>`;
+    $('btn-next').textContent = '等待房主开始新游戏…';
+    fOverlay.classList.add('show');
+  }
+}
+
+function netSend(obj) {
+  if (dc && dc.readyState === 'open') {
+    dc.send(JSON.stringify(obj));
+  }
+}
+
+function resetNet() {
+  if (pc) { pc.close(); pc = null; }
+  dc = null;
+  isNetConnected = false;
+  myRole = '';
+}
+
+// Send draw events over network
+const origDrawLine = drawLine;
+drawLine = function(from, to) {
+  origDrawLine(from, to);
+  if (gameMode === 'net' && canDraw()) {
+    netSend({ type: 'draw', from, to, color: brushColor, size: brushSize });
+  }
+};
+const origDrawDot = drawDot;
+drawDot = function(pos) {
+  origDrawDot(pos);
+  if (gameMode === 'net' && canDraw()) {
+    netSend({ type: 'dot', x: pos.x, y: pos.y, color: brushColor, size: brushSize });
+  }
+};
+const origClear = clearCanvas;
+clearCanvas = function() {
+  const w = canvas.width / (window.devicePixelRatio || 1);
+  const h = canvas.height / (window.devicePixelRatio || 1);
+  ctx.clearRect(0, 0, w, h);
+  drawHistory = [];
+  historyStep = -1;
+};
+</script>
+</body>
+</html>
