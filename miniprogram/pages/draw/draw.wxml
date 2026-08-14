@@ -1,0 +1,202 @@
+<!-- 你画我猜 - 小程序版（联机通道由 WebRTC 改为 WebSocket 房间） -->
+<view class="root {{theme === 'light' ? 'light' : ''}}">
+
+  <!-- 主题切换 -->
+  <view class="theme-toggle" bindtap="toggleTheme">{{theme === 'light' ? '☀️' : '🌙'}}</view>
+
+  <!-- ===== MENU ===== -->
+  <scroll-view scroll-y class="screen" wx:if="{{screen === 'menu'}}">
+    <view class="menu-wrap">
+      <view class="menu-title">你画我猜</view>
+      <view class="menu-sub">Draw &amp; Guess — 联机版</view>
+      <view class="btn" bindtap="onStartPractice">练习模式</view>
+      <view class="btn" bindtap="onStartLocal">本地双人</view>
+      <view class="btn" bindtap="onGotoNetMenu">联机对战 (云联机)</view>
+      <view class="info-box">
+        <view class="info-h">怎么玩</view>
+        <view class="info-p">系统给出词语，一人画画，另一人猜词。猜对得分，然后交换角色。联机版通过微信云开发实时同步，房主创建房间后把 4 位房间号发给好友即可对战。</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- ===== NET MENU ===== -->
+  <view class="screen" wx:if="{{screen === 'net-menu'}}">
+    <view class="net-wrap">
+      <view class="menu-title">联机对战</view>
+      <view class="menu-sub">选择你的角色</view>
+
+      <view class="net-card">
+        <view class="net-h">创建房间（房主）</view>
+        <view class="net-p">生成 4 位房间号，通过微信发给好友</view>
+        <view class="btn btn-primary" bindtap="onHostStart">创建房间</view>
+      </view>
+
+      <view class="net-card">
+        <view class="net-h">加入房间（访客）</view>
+        <view class="net-p">输入房主发来的 4 位房间号</view>
+        <input class="code-input" type="text" maxlength="4" placeholder="例如 AB3K"
+               placeholder-class="code-ph" value="{{joinCode}}" bindinput="onJoinCodeInput" />
+        <view class="btn" bindtap="onGuestStart">加入房间</view>
+      </view>
+
+      <view class="back-btn" bindtap="onBackToMenu">返回主菜单</view>
+    </view>
+  </view>
+
+  <!-- ===== HOST WAIT ===== -->
+  <scroll-view scroll-y class="screen" wx:if="{{screen === 'host'}}">
+    <view class="net-wrap">
+      <view class="menu-title">创建房间</view>
+      <view class="menu-sub">把房间号发给好友</view>
+      <view class="net-card">
+        <view class="net-h">房间号</view>
+        <view class="net-p">好友在「加入房间」中输入它即可连上</view>
+        <view class="room-code">{{roomCode || '····'}}</view>
+        <view class="btn btn-small" bindtap="onCopyRoom">复制房间号</view>
+      </view>
+      <view class="status {{netStatusCls}}">{{netStatus}}</view>
+      <view class="back-btn" bindtap="onCancelNet">取消</view>
+    </view>
+  </scroll-view>
+
+  <!-- ===== GUEST WAIT ===== -->
+  <scroll-view scroll-y class="screen" wx:if="{{screen === 'guest'}}">
+    <view class="net-wrap">
+      <view class="menu-title">加入房间</view>
+      <view class="menu-sub">等待房主开始</view>
+      <view class="net-card">
+        <view class="net-h">已进入房间</view>
+        <view class="net-p">房主开始后自动进入游戏</view>
+        <view class="room-code">{{roomCode || '····'}}</view>
+      </view>
+      <view class="status {{netStatusCls}}">{{netStatus}}</view>
+      <view class="back-btn" bindtap="onCancelNet">取消</view>
+    </view>
+  </scroll-view>
+
+  <!-- ===== GAME ===== -->
+  <scroll-view scroll-y class="screen" wx:if="{{screen === 'game'}}">
+    <view class="game-wrap guess-mode">
+
+      <view class="game-header">
+        <view class="gh-left">P1: {{scores.p1}}</view>
+        <view class="gh-center">
+          <view class="timer {{timerDanger ? 'danger' : ''}}">{{timer}}</view>
+          <view class="round-info">第 {{round}} / {{totalRounds}} 轮</view>
+        </view>
+        <view class="gh-right">P2: {{scores.p2}}</view>
+      </view>
+
+      <view class="word-display {{wordCls}}">{{wordText}}</view>
+
+      <view class="hint-row" wx:if="{{showHint}}">
+        <view class="btn btn-small" bindtap="onUseHint">💡 提示（揭开一个字）</view>
+      </view>
+
+      <view class="canvas-wrap" style="width:{{cw}}px;height:{{ch}}px;">
+        <canvas type="2d" id="board" class="board"
+                style="width:{{cw}}px;height:{{ch}}px;"
+                disable-scroll="true"
+                bindtouchstart="onTouchStart"
+                bindtouchmove="onTouchMove"
+                bindtouchend="onTouchEnd"
+                bindtouchcancel="onTouchEnd"></canvas>
+        <view class="canvas-overlay {{overlayText ? 'show' : ''}}">{{overlayText}}</view>
+      </view>
+
+      <!-- Tools（仅绘制方显示；猜词方无需画笔，隐藏以减少滚动） -->
+      <view class="panel {{toolsDisabled ? 'panel-disabled' : ''}}" wx:if="{{isDrawer}}">
+        <view class="panel-title">画笔工具</view>
+        <view class="tools-grid">
+          <view wx:for="{{colors}}" wx:key="*this"
+                class="color-swatch {{activeColor === item && tool === 'pen' ? 'active' : ''}}"
+                style="background:{{item}}"
+                data-color="{{item}}"
+                bindtap="onPickColor"></view>
+        </view>
+        <view class="tool-row">
+          <view class="tool-btn {{tool === 'pen' ? 'active' : ''}}" bindtap="onToolPen">✏️</view>
+          <view class="tool-btn {{tool === 'eraser' ? 'active' : ''}}" bindtap="onToolEraser">🧼</view>
+          <view class="tool-btn" bindtap="onToolClear">🗑️</view>
+          <view class="tool-btn" bindtap="onToolUndo">↩️</view>
+        </view>
+        <view class="size-row">
+          <text class="size-label">笔刷大小 {{brushSize}}</text>
+          <slider class="size-slider" min="2" max="20" step="1" value="{{brushSize}}"
+                  block-size="18" activeColor="#22d3ee" backgroundColor="rgba(255,255,255,0.18)"
+                  bindchanging="onBrushSize" bindchange="onBrushSize" />
+        </view>
+      </view>
+
+      <!-- Chat / Guess（聊天记录两侧通用；输入框统一用底部固定条，避免 scroll-view 内被键盘遮挡） -->
+      <view class="panel">
+        <view class="panel-title">猜词 / 聊天</view>
+        <scroll-view scroll-y class="chat-box" scroll-into-view="{{chatAnchor}}" scroll-with-animation>
+          <view wx:for="{{chat}}" wx:key="id" id="msg{{item.id}}" class="chat-msg">
+            <text wx:if="{{item.type === 'system'}}" class="c-system">[系统] {{item.text}}</text>
+            <text wx:elif="{{item.type === 'correct'}}" class="c-correct">[系统] {{item.text}}</text>
+            <block wx:else>
+              <text class="c-name">{{item.name}}:</text>
+              <text class="c-guess"> {{item.text}}</text>
+            </block>
+          </view>
+        </scroll-view>
+      </view>
+
+      <!-- Players（仅绘制方显示；猜词方隐藏以缩短页面） -->
+      <view class="panel" wx:if="{{isDrawer}}">
+        <view class="panel-title">玩家</view>
+        <view class="player-row">
+          <view>
+            <view class="p-name">玩家1 {{p1Role}}</view>
+            <view class="p-status {{drawer === 1 ? 'drawing' : ''}}">{{p1Status}}</view>
+          </view>
+          <view class="p-score">{{scores.p1}}</view>
+        </view>
+        <view class="player-row">
+          <view>
+            <view class="p-name">玩家2 {{p2Role}}</view>
+            <view class="p-status {{drawer === 2 ? 'drawing' : ''}}">{{p2Status}}</view>
+          </view>
+          <view class="p-score">{{scores.p2}}</view>
+        </view>
+      </view>
+
+      <view class="quit-row">
+        <view class="btn btn-small" bindtap="onQuitGame">退出游戏</view>
+      </view>
+
+    </view>
+  </scroll-view>
+
+  <!-- 底部固定输入条：画/猜双方共用，始终可见且跟随键盘高度上移，不被键盘遮挡 -->
+  <view class="guess-bar" style="bottom: {{kbHeight}}px;" wx:if="{{screen === 'game'}}">
+    <input class="guess-input" type="text" maxlength="20" placeholder="输入消息或猜测…"
+           placeholder-class="chat-ph" value="{{chatInput}}"
+           confirm-type="send" adjust-position="{{false}}"
+           bindinput="onChatInput" bindconfirm="onSubmitGuess"
+           bindfocus="onGuessFocus" bindblur="onGuessBlur" />
+    <view class="btn btn-small btn-primary" bindtap="onSubmitGuess">发送</view>
+  </view>
+
+  <!-- ===== RESULT OVERLAY ===== -->
+  <view class="result-overlay" wx:if="{{showResult}}">
+    <view class="result-card">
+      <view class="result-title">{{resultTitle}}</view>
+      <view class="result-desc">{{resultDesc}}</view>
+      <view class="result-scores">
+        <view class="result-score-row {{scores.p1 >= scores.p2 ? 'winner' : ''}}">
+          <text>玩家1</text><text>{{scores.p1}} 分</text>
+        </view>
+        <view class="result-score-row {{scores.p2 > scores.p1 ? 'winner' : ''}}">
+          <text>玩家2</text><text>{{scores.p2}} 分</text>
+        </view>
+      </view>
+      <view class="result-actions">
+        <view class="btn btn-primary btn-small {{nextDisabled ? 'btn-muted' : ''}}" bindtap="onNextRound">{{nextText}}</view>
+        <view class="btn btn-small" bindtap="onQuitGame">主菜单</view>
+      </view>
+    </view>
+  </view>
+
+</view>

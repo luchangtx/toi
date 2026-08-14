@@ -1,0 +1,295 @@
+/* ============================================
+   联机五子棋 —— 1:1 移植自 wzq.html
+   设计基准 375px，1px → 2rpx
+   ============================================ */
+
+/* 原版 body 浅色渐变背景（覆盖 app.wxss 的深色 page 背景） */
+page {
+  background: #d5dcf3;
+}
+
+.gomoku-page {
+  min-height: 100vh; /* 原版 min-height:100vh，小程序不支持 100dvh */
+  background: linear-gradient(120deg, #c9d6ff 0%, #e2e2e2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30rpx;
+}
+
+/* ============ 卡片容器 ============ */
+.game-container {
+  width: 100%;
+  max-width: 900rpx; /* 原版 450px */
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 40rpx;
+  padding: 50rpx 30rpx;
+  box-shadow: 0 20rpx 80rpx rgba(0, 0, 0, 0.15);
+}
+
+.title {
+  text-align: center;
+  color: #3f51b5;
+  font-size: 56rpx;
+  margin-bottom: 30rpx;
+  font-weight: 700;
+}
+
+/* ============ 房间选择区域 ============ */
+.room-select {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 40rpx;
+}
+
+.room-select > .btn,
+.room-select > .or-tip,
+.room-select > .room-id-input {
+  margin-bottom: 30rpx; /* 等效原版 gap:15px */
+}
+.room-select > .btn:last-child {
+  margin-bottom: 0;
+}
+
+.or-tip {
+  text-align: center;
+  color: #757575;
+  font-size: 26rpx;
+}
+
+.room-id-input {
+  padding: 0 24rpx;
+  height: 88rpx;
+  line-height: 80rpx;
+  font-size: 32rpx;
+  color: #333;
+  background: #fff;
+  border: 4rpx solid #ddd;
+  border-radius: 20rpx;
+  width: 100%;
+  text-align: center;
+  letter-spacing: 4rpx;
+  box-sizing: border-box;
+}
+.room-id-ph {
+  color: #bbb;
+  letter-spacing: 0;
+}
+
+/* ============ 按钮 ============ */
+.btn-row {
+  display: flex;
+  justify-content: center;
+}
+.btn-row .btn {
+  flex: 1;
+  padding: 24rpx 10rpx;
+  font-size: 28rpx;
+  margin-right: 20rpx;
+}
+.btn-row .btn:last-child {
+  margin-right: 0;
+}
+
+.btn {
+  padding: 24rpx 50rpx;
+  border: none;
+  border-radius: 20rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #3f51b5, #5c6bc0);
+  color: #ffffff;
+  box-shadow: 0 6rpx 20rpx rgba(63, 81, 181, 0.3);
+}
+/* :hover 不可用 → 用 :active 提供按压反馈 */
+.btn-primary:active {
+  transform: translateY(-4rpx);
+  box-shadow: 0 10rpx 30rpx rgba(63, 81, 181, 0.4);
+}
+
+.btn-secondary {
+  background: #fff;
+  color: #666;
+  border: 4rpx solid #ddd;
+}
+.btn-secondary:active {
+  background: #f5f5f5;
+}
+
+.btn-danger {
+  background: linear-gradient(to right, #f44336, #e57373);
+  color: #ffffff;
+  box-shadow: 0 6rpx 20rpx rgba(244, 67, 54, 0.3);
+}
+.btn-danger:active {
+  transform: translateY(-4rpx);
+  box-shadow: 0 10rpx 30rpx rgba(244, 67, 54, 0.4);
+}
+
+.btn-disabled {
+  opacity: 0.6;
+}
+
+/* ============ 状态栏 / 房间号 ============ */
+.status-bar {
+  text-align: center;
+  padding: 20rpx;
+  background: linear-gradient(to right, #f8f0ff, #f0f9ff);
+  border-radius: 20rpx;
+  color: #333;
+  font-size: 28rpx;
+  margin-bottom: 30rpx;
+  font-weight: 500;
+}
+
+.room-id-display {
+  background: #e8eaf6;
+  padding: 30rpx;
+  border-radius: 20rpx;
+  text-align: center;
+  margin-bottom: 30rpx;
+}
+.room-id-display:active {
+  background: #dde0f0;
+}
+
+.room-label {
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 10rpx;
+}
+
+.room-id {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #3f51b5;
+  letter-spacing: 4rpx;
+}
+
+.room-copy-tip {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #9fa8da;
+}
+
+/* ============ 棋盘 ============
+   正方形自适应：750rpx 恒等于屏幕宽度，
+   页面 padding 30rpx*2 + 卡片 padding 30rpx*2 + 棋盘 padding 30rpx*2 = 180rpx
+   → 棋盘外框 630rpx，网格 570rpx，15 路每格 38rpx，宽高相等恒为正方形。
+*/
+.board-container {
+  position: relative;
+  width: 630rpx;
+  height: 630rpx;
+  margin: 0 auto 30rpx;
+  background: #f5d59a;
+  border-radius: 24rpx;
+  padding: 30rpx;
+  box-shadow: inset 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+}
+
+.board-grid {
+  width: 570rpx;
+  height: 570rpx;
+  display: flex;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.cell {
+  width: 38rpx;
+  height: 38rpx;
+  background: transparent;
+  position: relative;
+}
+
+/* 棋盘线（原版 .cell::before / ::after） */
+.cell::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2rpx;
+  background: #6d4c41;
+}
+.cell::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2rpx;
+  background: #6d4c41;
+}
+
+/* 去掉边缘多余的线（原版按 data-row / data-col，此处改用 class） */
+.cell.r0::after {
+  top: 50%;
+}
+.cell.r14::after {
+  bottom: 50%;
+}
+.cell.c0::before {
+  left: 50%;
+}
+.cell.c14::before {
+  right: 50%;
+}
+
+/* 原版 .cell:hover 高亮 → :active */
+.cell:active::before,
+.cell:active::after {
+  background: #3f51b5;
+}
+
+/* ============ 棋子 ============ */
+.piece {
+  position: absolute;
+  width: 85%;
+  height: 85%;
+  top: 7.5%;
+  left: 7.5%;
+  border-radius: 50%;
+  z-index: 2;
+  animation: drop 0.2s ease;
+}
+
+@keyframes drop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.piece-black {
+  background: radial-gradient(circle at 30% 30%, #666, #222);
+  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.4);
+}
+
+.piece-white {
+  background: radial-gradient(circle at 30% 30%, #fff, #e0e0e0);
+  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.3);
+}
+
+/* 最后一手红点标记 */
+.piece-last::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: #f44336;
+}

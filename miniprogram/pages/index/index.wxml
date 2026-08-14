@@ -1,0 +1,53 @@
+<view class="page">
+  <!-- 背景装饰 -->
+  <view class="grid-overlay"></view>
+  <view class="glow-orb a"></view>
+  <view class="glow-orb b"></view>
+  <view class="glow-orb c"></view>
+  <canvas type="2d" id="bgCanvas" class="bg-canvas"></canvas>
+
+  <view class="container">
+    <view class="header">
+      <view class="header-tag">COLLECTION</view>
+      <view class="title">小游戏合集</view>
+      <view class="subtitle">选择一个项目开始体验</view>
+    </view>
+
+    <view class="cards">
+      <view
+        class="card"
+        wx:for="{{cards}}"
+        wx:key="id"
+        style="animation-delay:{{item.delay}}s"
+        bindtap="goPage"
+        data-url="{{item.url}}"
+        hover-class="card-hover"
+        hover-stay-time="80"
+      >
+        <view class="card-visual">
+          <view class="card-visual-bg" style="{{item.bg}}"></view>
+          <view class="card-top-line" style="background:{{item.line}}"></view>
+          <view class="card-icon">{{item.icon}}</view>
+        </view>
+        <view class="card-body">
+          <view class="card-category" style="color:{{item.catColor}}">{{item.category}}</view>
+          <view class="card-title">{{item.title}}</view>
+          <view class="card-desc">{{item.desc}}</view>
+          <view class="card-footer">
+            <view class="card-tags">
+              <view
+                class="card-tag"
+                wx:for="{{item.tags}}"
+                wx:for-item="tag"
+                wx:key="*this"
+              >{{tag}}</view>
+            </view>
+            <view class="card-arrow">→</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="footer">BUILT WITH ♥ — TOI PROJECT COLLECTION</view>
+  </view>
+</view>

@@ -1,0 +1,779 @@
+/* 三角洲行动 - 样式 1:1 移植自 sjz.html（采用其移动端 @media 分支数值，1px -> 2rpx） */
+
+page {
+  background: #0a0a0a;
+  overflow: hidden;
+}
+
+.delta-root {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  color: #e0e0e0;
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+}
+
+/* 扫描线效果（源 body::before） */
+.scanlines {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 4rpx,
+    rgba(0, 150, 255, 0.03) 4rpx,
+    rgba(0, 150, 255, 0.03) 8rpx
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* 粒子背景 */
+.particles-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 游戏画布 */
+.game-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* HUD 顶部信息栏（backdrop-filter 不支持 -> 加深半透明背景） */
+.hud-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.72) 100%);
+  border-bottom: 4rpx solid #d4af37;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 20rpx;
+  padding-right: 20rpx;
+  z-index: 100;
+}
+
+.hud-section {
+  display: flex;
+  align-items: center;
+  gap: 30rpx;
+}
+
+.hud-label {
+  font-size: 20rpx;
+  color: #888;
+  letter-spacing: 4rpx;
+}
+
+/* 血条 */
+.health-bar-container {
+  width: 240rpx;
+  height: 32rpx;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2rpx solid #d4af37;
+  position: relative;
+  overflow: hidden;
+}
+
+.health-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #ff3333, #ff6666);
+  transition: width 0.3s ease;
+}
+
+.health-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 22rpx;
+  color: #fff;
+  text-shadow: 0 0 10rpx rgba(0, 0, 0, 0.8);
+  z-index: 2;
+  white-space: nowrap;
+}
+
+/* 弹药显示 */
+.ammo-display {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.ammo-current {
+  font-size: 48rpx;
+  color: #d4af37;
+  font-weight: bold;
+  line-height: 1.1;
+}
+
+.ammo-total {
+  font-size: 22rpx;
+  color: #666;
+}
+
+/* 武器信息 */
+.weapon-info {
+  text-align: center;
+}
+
+.weapon-name {
+  font-size: 26rpx;
+  color: #00a8ff;
+  font-weight: bold;
+  letter-spacing: 2rpx;
+}
+
+.weapon-mode {
+  font-size: 20rpx;
+  color: #666;
+}
+
+/* 小地图 */
+.minimap {
+  position: fixed;
+  left: 20rpx;
+  width: 240rpx;
+  height: 240rpx;
+  background: rgba(0, 0, 0, 0.8);
+  border: 4rpx solid #333;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.minimap-title {
+  position: absolute;
+  top: 4rpx;
+  left: 10rpx;
+  font-size: 16rpx;
+  color: #666;
+  z-index: 2;
+}
+
+.minimap-canvas {
+  width: 240rpx;
+  height: 240rpx;
+}
+
+/* 任务目标（backdrop-filter 不支持 -> 纯半透明背景） */
+.mission-objective {
+  position: fixed;
+  right: 20rpx;
+  background: rgba(0, 0, 0, 0.85);
+  border: 2rpx solid #00a8ff;
+  border-left: 8rpx solid #00a8ff;
+  padding: 24rpx 30rpx;
+  max-width: 400rpx;
+  z-index: 100;
+}
+
+.mission-title {
+  font-size: 22rpx;
+  color: #00a8ff;
+  letter-spacing: 4rpx;
+  margin-bottom: 10rpx;
+}
+
+.mission-text {
+  font-size: 22rpx;
+  color: #ccc;
+  line-height: 1.5;
+}
+
+.mission-counter {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: #d4af37;
+}
+
+/* 击杀提示 */
+.kill-feed {
+  position: fixed;
+  left: 40rpx;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  pointer-events: none;
+}
+
+.kill-item {
+  background: rgba(0, 0, 0, 0.8);
+  border-left: 6rpx solid #d4af37;
+  padding: 10rpx 24rpx;
+  font-size: 22rpx;
+  color: #fff;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* 准星 */
+.crosshair {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 150;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.crosshair-v {
+  position: absolute;
+  width: 4rpx;
+  height: 32rpx;
+  background: rgba(212, 175, 55, 0.8);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.crosshair-h {
+  position: absolute;
+  width: 32rpx;
+  height: 4rpx;
+  background: rgba(212, 175, 55, 0.8);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.crosshair-dot {
+  position: absolute;
+  width: 8rpx;
+  height: 8rpx;
+  background: #d4af37;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 伤害指示器 */
+.damage-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 90;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.damage-indicator.active {
+  opacity: 1;
+  box-shadow: inset 0 0 200rpx rgba(255, 0, 0, 0.5);
+}
+
+/* 得分弹出 */
+.score-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 72rpx;
+  font-weight: bold;
+  color: #d4af37;
+  text-shadow: 0 0 40rpx rgba(212, 175, 55, 0.8);
+  z-index: 300;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.5s;
+}
+
+.score-popup.show {
+  opacity: 1;
+  transform: translate(-50%, -80%);
+}
+
+/* 通知消息 */
+.notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.9);
+  border: 4rpx solid #d4af37;
+  padding: 40rpx 80rpx;
+  font-size: 32rpx;
+  color: #d4af37;
+  z-index: 500;
+  white-space: nowrap;
+}
+
+.notification.show {
+  animation: pulse 0.5s ease;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* 虚拟摇杆 */
+.joystick-area {
+  position: fixed;
+  bottom: calc(40rpx + env(safe-area-inset-bottom));
+  left: 40rpx;
+  width: 240rpx;
+  height: 240rpx;
+  z-index: 200;
+}
+
+.joystick-base {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 4rpx solid rgba(212, 175, 55, 0.3);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.joystick-stick {
+  position: absolute;
+  width: 100rpx;
+  height: 100rpx;
+  background: radial-gradient(circle, #d4af37, #8b6914);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 30rpx rgba(212, 175, 55, 0.5);
+  transition: margin 0.05s;
+}
+
+/* 返回按钮需盖在开始画面之上 */
+.nav-back {
+  z-index: 1200;
+}
+
+/* 射击按钮 */
+.fire-btn {
+  position: fixed;
+  bottom: calc(60rpx + env(safe-area-inset-bottom));
+  right: 60rpx;
+  width: 140rpx;
+  height: 140rpx;
+  background: radial-gradient(circle, rgba(255, 50, 50, 0.8), rgba(150, 0, 0, 0.8));
+  border: 6rpx solid #ff3333;
+  border-radius: 50%;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #fff;
+  letter-spacing: 4rpx;
+  box-shadow: 0 0 40rpx rgba(255, 50, 50, 0.4);
+  transition: all 0.1s;
+}
+
+.fire-btn:active {
+  transform: scale(0.9);
+  background: radial-gradient(circle, rgba(255, 80, 80, 1), rgba(200, 0, 0, 1));
+}
+
+/* 换弹按钮 */
+.reload-btn {
+  position: fixed;
+  bottom: calc(260rpx + env(safe-area-inset-bottom));
+  right: 110rpx;
+  width: 100rpx;
+  height: 100rpx;
+  background: rgba(0, 168, 255, 0.3);
+  border: 4rpx solid #00a8ff;
+  border-radius: 50%;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  color: #00a8ff;
+}
+
+.reload-btn:active {
+  background: rgba(0, 168, 255, 0.5);
+}
+
+/* 武器选择面板 */
+.weapon-panel {
+  position: fixed;
+  bottom: calc(40rpx + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20rpx;
+  z-index: 200;
+}
+
+.weapon-slot {
+  width: 100rpx;
+  height: 100rpx;
+  background: rgba(0, 0, 0, 0.7);
+  border: 4rpx solid #444;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.weapon-slot.active {
+  border-color: #d4af37;
+  background: rgba(212, 175, 55, 0.15);
+  box-shadow: 0 0 30rpx rgba(212, 175, 55, 0.3);
+}
+
+.weapon-slot:active {
+  border-color: #666;
+}
+
+.weapon-slot-name {
+  font-size: 20rpx;
+  color: #888;
+  margin-bottom: 4rpx;
+}
+
+.weapon-slot-icon {
+  font-size: 32rpx;
+}
+
+/* 开始画面 */
+.start-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 1000;
+}
+
+.start-inner {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-left: 40rpx;
+  padding-right: 40rpx;
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.game-title {
+  font-size: 64rpx;
+  font-weight: bold;
+  color: #d4af37;
+  letter-spacing: 16rpx;
+  margin-bottom: 20rpx;
+  text-shadow: 0 0 60rpx rgba(212, 175, 55, 0.5);
+}
+
+.game-subtitle {
+  font-size: 26rpx;
+  color: #00a8ff;
+  letter-spacing: 8rpx;
+  margin-bottom: 80rpx;
+}
+
+.story-box {
+  max-width: 1200rpx;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2rpx solid #333;
+  border-left: 8rpx solid #d4af37;
+  padding: 50rpx;
+  margin-bottom: 60rpx;
+  line-height: 1.8;
+}
+
+.story-title {
+  font-size: 26rpx;
+  color: #d4af37;
+  letter-spacing: 6rpx;
+  margin-bottom: 30rpx;
+}
+
+.story-text {
+  font-size: 24rpx;
+  color: #aaa;
+}
+
+.story-gap {
+  margin-top: 28rpx;
+}
+
+.mission-brief {
+  margin-top: 30rpx;
+  padding-top: 30rpx;
+  border-top: 2rpx solid #333;
+}
+
+.mission-brief-title {
+  font-size: 24rpx;
+  color: #00a8ff;
+  margin-bottom: 16rpx;
+}
+
+.mission-brief-text {
+  font-size: 24rpx;
+  color: #888;
+}
+
+.start-btn {
+  padding: 30rpx 120rpx;
+  background: linear-gradient(135deg, #d4af37, #8b6914);
+  color: #000;
+  font-size: 32rpx;
+  font-weight: bold;
+  letter-spacing: 6rpx;
+  transition: all 0.3s;
+  margin-top: 40rpx;
+}
+
+.start-btn:active {
+  transform: scale(1.05);
+  box-shadow: 0 0 60rpx rgba(212, 175, 55, 0.5);
+}
+
+/* ============ 新版 HUD 中央/右侧 ============ */
+.hud-center {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.hud-wave {
+  font-size: 30rpx;
+  color: #00a8ff;
+  font-weight: bold;
+  letter-spacing: 2rpx;
+}
+
+.hud-score {
+  font-size: 24rpx;
+  color: #d4af37;
+}
+
+.hud-combo {
+  font-size: 24rpx;
+  color: #ff8c00;
+  height: 28rpx;
+}
+
+.hud-right {
+  gap: 16rpx;
+}
+
+.hud-right .weapon-info {
+  text-align: right;
+}
+
+.mini-btn {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2rpx solid #444;
+  color: #ccc;
+  font-size: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mini-btn:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ============ 右摇杆（瞄准 + 开火） ============ */
+.joystick-area.aim {
+  left: auto;
+  right: 40rpx;
+}
+
+.joystick-area.aim .joystick-base {
+  border-color: rgba(0, 168, 255, 0.35);
+}
+
+.joystick-area.aim .joystick-stick {
+  background: radial-gradient(circle, #00a8ff, #005c99);
+  box-shadow: 0 0 30rpx rgba(0, 168, 255, 0.5);
+}
+
+.joystick-area.aim .joystick-label {
+  color: #00a8ff;
+}
+
+/* 调整武器面板与按钮位置，避免与双摇杆重叠 */
+.weapon-panel {
+  bottom: calc(300rpx + env(safe-area-inset-bottom));
+}
+
+.fire-btn {
+  bottom: calc(290rpx + env(safe-area-inset-bottom));
+  right: 50rpx;
+  width: 120rpx;
+  height: 120rpx;
+  font-size: 24rpx;
+}
+
+.reload-btn {
+  bottom: calc(440rpx + env(safe-area-inset-bottom));
+  right: 75rpx;
+  width: 90rpx;
+  height: 90rpx;
+}
+
+.joystick-label {
+  position: absolute;
+  bottom: -28rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18rpx;
+  color: #777;
+  letter-spacing: 4rpx;
+  white-space: nowrap;
+}
+
+/* ============ 波次横幅 ============ */
+.wave-banner {
+  position: fixed;
+  top: 36%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 520;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.wave-banner.show {
+  animation: waveIn 2.2s ease forwards;
+}
+
+@keyframes waveIn {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+  18% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  78% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.wave-big {
+  font-size: 88rpx;
+  font-weight: bold;
+  color: #d4af37;
+  letter-spacing: 8rpx;
+  text-shadow: 0 0 60rpx rgba(212, 175, 55, 0.6);
+}
+
+.wave-sub {
+  font-size: 28rpx;
+  color: #00a8ff;
+  letter-spacing: 6rpx;
+  margin-top: 12rpx;
+}
+
+/* ============ 覆盖层（暂停 / 失败 / 胜利） ============ */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ov-head {
+  font-size: 64rpx;
+  font-weight: bold;
+  letter-spacing: 6rpx;
+  margin-bottom: 40rpx;
+}
+
+.ov-head.win {
+  color: #00ff88;
+  text-shadow: 0 0 48rpx rgba(0, 255, 136, 0.5);
+}
+
+.ov-head.lose {
+  color: #ff4444;
+  text-shadow: 0 0 48rpx rgba(255, 68, 68, 0.5);
+}
+
+.ov-stats {
+  background: rgba(0, 0, 0, 0.7);
+  border: 2rpx solid #333;
+  padding: 30rpx 50rpx;
+  margin-bottom: 40rpx;
+  min-width: 560rpx;
+}
+
+.ov-stats .row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 26rpx;
+  padding: 10rpx 0;
+  color: #ccc;
+  border-bottom: 2rpx dashed #2a2a2a;
+}
+
+.ov-stats .row text:last-child {
+  color: #d4af37;
+  font-weight: bold;
+}
+
+.ov-stats .row.best text:last-child {
+  color: #00a8ff;
+}
+
+.ov-btn {
+  padding: 28rpx 90rpx;
+  background: linear-gradient(135deg, #d4af37, #8b6914);
+  color: #000;
+  font-size: 32rpx;
+  font-weight: bold;
+  letter-spacing: 4rpx;
+  margin: 12rpx;
+  transition: all 0.25s;
+}
+
+.ov-btn:active {
+  transform: scale(1.05);
+  box-shadow: 0 0 60rpx rgba(212, 175, 55, 0.5);
+}
+
+.ov-btn.alt {
+  background: linear-gradient(135deg, #444, #222);
+  color: #fff;
+}

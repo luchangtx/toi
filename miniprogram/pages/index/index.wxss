@@ -1,0 +1,261 @@
+/* ============ 目录页 深色科技风 ============ */
+.page {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #06080f;
+}
+
+/* 动态背景 - 网格 */
+.grid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: gridDrift 20s linear infinite;
+}
+@keyframes gridDrift {
+  from { transform: translate(0, 0); }
+  to { transform: translate(60px, 60px); }
+}
+
+/* 光晕球 */
+.glow-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+  animation: orbFloat 12s ease-in-out infinite alternate;
+}
+.glow-orb.a {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(99,102,241,0.25), transparent 70%);
+  top: -10%; left: -10%;
+}
+.glow-orb.b {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(236,72,153,0.2), transparent 70%);
+  bottom: -10%; right: -10%;
+  animation-delay: -4s;
+}
+.glow-orb.c {
+  width: 350px; height: 350px;
+  background: radial-gradient(circle, rgba(16,185,129,0.15), transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: -8s;
+}
+@keyframes orbFloat {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(30px, -20px) scale(1.1); }
+  100% { transform: translate(-20px, 30px) scale(0.95); }
+}
+
+/* 背景连线粒子画布 */
+.bg-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 主容器 */
+.container {
+  position: relative;
+  z-index: 1;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 60px 24px 80px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 头部 */
+.header {
+  text-align: center;
+  margin-bottom: 60px;
+  animation: headerIn 1s ease-out;
+}
+@keyframes headerIn {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.header-tag {
+  display: inline-block;
+  font-size: 22rpx;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.35);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 6px 18px;
+  border-radius: 100px;
+  margin-bottom: 24px;
+  background: rgba(255,255,255,0.02);
+}
+.title {
+  font-size: 68rpx;
+  font-weight: 900;
+  letter-spacing: 2px;
+  /* 小程序不支持 -webkit-background-clip:text 渐变文字，使用亮色 + 阴影等效 */
+  color: #a5b4fc;
+  text-shadow: 0 0 24rpx rgba(129,140,248,0.5);
+  line-height: 1.2;
+}
+.subtitle {
+  margin-top: 12px;
+  font-size: 28rpx;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 1px;
+}
+
+/* 卡片网格 */
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  flex: 1;
+}
+.card {
+  position: relative;
+  width: calc((100% - 24px) / 2);
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  animation: cardIn 0.8s ease-out backwards;
+}
+@media (max-width: 640px) {
+  .card { width: 100%; }
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.card-hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+.card-hover .card-visual-bg { opacity: 0.28; }
+.card-hover .card-icon { transform: scale(1.15) rotate(-3deg); }
+.card-hover .card-top-line { opacity: 1; }
+.card-hover .card-arrow { background: rgba(255,255,255,0.1); color: #fff; transform: translateX(4px); }
+
+/* 卡片顶部渐变线 */
+.card-top-line {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 20px 20px 0 0;
+  opacity: 0;
+}
+
+/* 光扫效果 */
+.card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  transition: left 0.6s;
+  pointer-events: none;
+}
+.card-hover::after { left: 100%; }
+
+.card-visual {
+  height: 160px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-visual-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  transition: opacity 0.4s;
+}
+.card-icon {
+  font-size: 80rpx;
+  z-index: 1;
+  filter: drop-shadow(0 4px 20px rgba(0,0,0,0.5));
+  transition: transform 0.4s;
+}
+
+.card-body {
+  padding: 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.card-category {
+  font-size: 22rpx;
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+.card-title {
+  font-size: 38rpx;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #fff;
+  line-height: 1.3;
+}
+.card-desc {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.6;
+  flex: 1;
+}
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.card-tags {
+  display: flex;
+  gap: 6px;
+}
+.card-tag {
+  font-size: 22rpx;
+  padding: 3px 10px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.4);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.card-arrow {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.3);
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+/* 页脚 */
+.footer {
+  text-align: center;
+  margin-top: 60px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.2);
+  font-size: 22rpx;
+  letter-spacing: 1px;
+}

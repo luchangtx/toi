@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "你画我猜",
+  "navigationBarBackgroundColor": "#06080f",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#06080f",
+  "disableScroll": true,
+  "usingComponents": {}
+}

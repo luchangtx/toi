@@ -1,0 +1,64 @@
+<!-- 联机五子棋 —— 1:1 移植自 wzq.html（PeerJS → 微信云开发 RoomClient） -->
+<view class="gomoku-page">
+  <view class="game-container">
+    <view class="title">🏁 联机五子棋</view>
+
+    <!-- ========== 房间选择 / 等待区域（对应原版 #roomArea） ========== -->
+    <view class="room-select" wx:if="{{phase === 'menu'}}">
+      <view class="btn btn-primary {{connecting ? 'btn-disabled' : ''}}" bindtap="createRoom">
+        {{connecting ? '连接中...' : '创建房间'}}
+      </view>
+      <view class="or-tip">或输入房间号加入</view>
+      <input
+        class="room-id-input"
+        type="text"
+        maxlength="4"
+        value="{{joinRoomId}}"
+        placeholder="输入4位房间号"
+        placeholder-class="room-id-ph"
+        bindinput="onRoomInput"
+      />
+      <view class="btn btn-secondary {{connecting ? 'btn-disabled' : ''}}" bindtap="joinRoom">加入房间</view>
+    </view>
+
+    <!-- 已创建房间，等待对手（对应原版 #roomInfo） -->
+    <view wx:if="{{phase === 'waiting'}}">
+      <view class="room-id-display" bindtap="copyRoomId">
+        <view class="room-label">房间号（发给好友即可联机）</view>
+        <view class="room-id">{{roomId || '-'}}</view>
+        <view class="room-copy-tip">点击复制</view>
+      </view>
+      <view class="status-bar">{{statusText}}</view>
+    </view>
+
+    <!-- ========== 游戏区域（对应原版 #gameArea） ========== -->
+    <view wx:if="{{phase === 'playing'}}">
+      <!-- 原版 statusText 位于 roomArea 内，开局后被整体隐藏导致永远看不到；此处移入棋局区保证可见 -->
+      <view class="status-bar">{{statusText}}</view>
+
+      <view class="board-container">
+        <view class="board-grid">
+          <view
+            wx:for="{{cells}}"
+            wx:key="k"
+            class="cell {{item.cls}}"
+            data-row="{{item.row}}"
+            data-col="{{item.col}}"
+            bindtap="onCellTap"
+          >
+            <view
+              wx:if="{{item.piece}}"
+              class="piece piece-{{item.piece}} {{item.last ? 'piece-last' : ''}}"
+            ></view>
+          </view>
+        </view>
+      </view>
+
+      <view class="btn-row">
+        <view class="btn btn-secondary" bindtap="restartGame">重新开始</view>
+        <view class="btn btn-danger" bindtap="surrender">认输</view>
+        <view class="btn btn-primary" bindtap="disconnect">退出房间</view>
+      </view>
+    </view>
+  </view>
+</view>

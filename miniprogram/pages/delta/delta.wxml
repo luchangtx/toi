@@ -1,0 +1,184 @@
+<!-- 三角洲行动 - 小程序版（与 sjz.html 玩法一致） -->
+<view class="delta-root">
+
+  <!-- 粒子背景 -->
+  <canvas type="2d" id="particlesCanvas" class="particles-canvas" disable-scroll="{{true}}"></canvas>
+
+  <!-- 游戏画布（点屏瞄准；右摇杆在之上独立处理） -->
+  <canvas type="2d" id="gameCanvas" class="game-canvas" disable-scroll="{{true}}"
+    bindtouchstart="onAimStart" bindtouchmove="onAimMove" bindtouchend="onAimEnd" bindtouchcancel="onAimEnd"></canvas>
+
+  <view class="scanlines"></view>
+
+  <view class="nav-back" style="top:{{statusBarHeight + 8}}px" bindtap="onBack">‹</view>
+
+  <!-- HUD 顶部 -->
+  <view class="hud-top" style="height:{{statusBarHeight + 50}}px;padding-top:{{statusBarHeight}}px">
+    <view class="hud-section">
+      <view class="hud-label">生命值</view>
+      <view class="health-bar-container">
+        <view class="health-bar" style="width:{{hud.healthPercent}}%"></view>
+        <view class="health-text">{{hud.healthText}}</view>
+      </view>
+    </view>
+
+    <view class="hud-section hud-center">
+      <view class="hud-wave">第 {{hud.wave}} 波</view>
+      <view class="hud-score">分数 {{hud.score}}</view>
+      <view class="hud-combo">{{hud.combo}}</view>
+    </view>
+
+    <view class="hud-section hud-right">
+      <view class="ammo-display">
+        <view class="ammo-current">{{hud.ammo}}</view>
+        <view class="ammo-total">/ {{hud.totalAmmo}}</view>
+      </view>
+      <view class="weapon-info">
+        <view class="weapon-name">{{hud.weaponName}}</view>
+        <view class="weapon-mode">{{hud.weaponMode}}</view>
+      </view>
+      <view class="mini-btn" bindtap="onMute">{{muted ? '🔇' : '🔊'}}</view>
+      <view class="mini-btn" bindtap="onPause">⏸</view>
+    </view>
+  </view>
+
+  <!-- 小地图 -->
+  <view class="minimap" style="top:{{statusBarHeight + 70}}px">
+    <view class="minimap-title">RADAR</view>
+    <canvas type="2d" id="minimapCanvas" class="minimap-canvas" disable-scroll="{{true}}"></canvas>
+  </view>
+
+  <!-- 任务目标 -->
+  <view class="mission-objective" style="top:{{statusBarHeight + 70}}px">
+    <view class="mission-title">当前任务</view>
+    <view class="mission-text">逐波肃清敌方据点。注意狙击手红色激光预警，利用掩体与补给续战。</view>
+    <view class="mission-counter">击杀: {{hud.kills}}</view>
+  </view>
+
+  <!-- 击杀提示 -->
+  <view class="kill-feed" style="top:{{statusBarHeight + 80}}px">
+    <view class="kill-item" wx:for="{{killFeed}}" wx:key="id">{{item.text}}</view>
+  </view>
+
+  <!-- 准星 -->
+  <view class="crosshair">
+    <view class="crosshair-v"></view>
+    <view class="crosshair-h"></view>
+    <view class="crosshair-dot"></view>
+  </view>
+
+  <view class="damage-indicator {{damageActive ? 'active' : ''}}"></view>
+
+  <view class="score-popup {{scoreShow ? 'show' : ''}}">{{scoreText}}</view>
+
+  <view class="notification {{notifyShow ? 'show' : ''}}" wx:if="{{notifyShow}}">{{notifyText}}</view>
+
+  <!-- 波次横幅 -->
+  <view class="wave-banner {{waveShow ? 'show' : ''}}">
+    <view class="wave-big">{{waveBig}}</view>
+    <view class="wave-sub">{{waveSub}}</view>
+  </view>
+
+  <!-- 左摇杆：移动 -->
+  <view class="joystick-area" id="joystick" bindtouchstart="onJoystickStart" bindtouchmove="onJoystickMove"
+    bindtouchend="onJoystickEnd" bindtouchcancel="onJoystickEnd">
+    <view class="joystick-base"></view>
+    <view class="joystick-stick" style="margin-left:{{stickX}}px;margin-top:{{stickY}}px"></view>
+    <view class="joystick-label">移动</view>
+  </view>
+
+  <!-- 右摇杆：瞄准 + 开火 -->
+  <view class="joystick-area aim" id="aimJoystick" bindtouchstart="onAimStart" bindtouchmove="onAimMove"
+    bindtouchend="onAimEnd" bindtouchcancel="onAimEnd">
+    <view class="joystick-base"></view>
+    <view class="joystick-stick" style="margin-left:{{aimX}}px;margin-top:{{aimY}}px"></view>
+    <view class="joystick-label">瞄准 / 开火</view>
+  </view>
+
+  <view class="fire-btn" bindtouchstart="onFireStart" bindtouchend="onFireEnd" bindtouchcancel="onFireEnd">开火</view>
+
+  <view class="reload-btn" bindtouchstart="onReload">↻</view>
+
+  <!-- 武器面板 -->
+  <view class="weapon-panel">
+    <view class="weapon-slot {{currentWeapon === item.id ? 'active' : ''}}" wx:for="{{weaponList}}" wx:key="id"
+      data-weapon="{{item.id}}" bindtap="onSelectWeapon">
+      <view class="weapon-slot-name">{{item.name}}</view>
+      <view class="weapon-slot-icon">🔫</view>
+    </view>
+  </view>
+
+  <!-- 开始画面 -->
+  <scroll-view scroll-y class="overlay start-screen" wx:if="{{!started}}">
+    <view class="start-inner" style="padding-top:{{statusBarHeight + 20}}px">
+      <view class="game-title">三角洲行动</view>
+      <view class="game-subtitle">DELTA FORCE · 猎鹰行动</view>
+
+      <view class="story-box">
+        <view class="story-title">任务简报</view>
+        <view class="story-text">
+          2035年，哈夫克集团在全球秘密建立军事设施，研发生化武器。G.T.I. 收到情报，其在临界点地区部署了新型气象武器。
+        </view>
+        <view class="story-text story-gap">
+          你作为 G.T.I. 特战干员，代号"猎鹰"，奉命潜入敌方控制区域，逐波肃清所有抵抗力量。
+        </view>
+        <view class="mission-brief">
+          <view class="mission-brief-title">作战要素</view>
+          <view class="mission-brief-text">► 波次攻势：敌人成波涌来，越往后越凶悍</view>
+          <view class="mission-brief-text">► 四类敌人：步兵 / 冲锋兵 / 重甲兵 / 狙击手(激光预警)</view>
+          <view class="mission-brief-text">► 四把武器：M4A1 / AK-47 / SMG-45 / M870 霰弹</view>
+          <view class="mission-brief-text">► 战场补给：拾取医疗包与弹药箱续战</view>
+          <view class="mission-brief-text">► 连击系统：连续击杀提升分数倍率</view>
+        </view>
+      </view>
+
+      <view class="story-box">
+        <view class="story-title">操作方式</view>
+        <view class="mission-brief-text">► 左摇杆移动，右摇杆瞄准并自动开火</view>
+        <view class="mission-brief-text">► 开火键点射，↻ 换弹，底部武器槽切换</view>
+        <view class="mission-brief-text">► 也可点击战场任意处瞄准方向</view>
+      </view>
+
+      <view class="start-btn" bindtap="onStart">开始行动</view>
+    </view>
+  </scroll-view>
+
+  <!-- 暂停 -->
+  <view class="overlay" wx:if="{{paused}}">
+    <view class="ov-head" style="color:#d4af37">已暂停</view>
+    <view class="ov-btn" bindtap="onResume">继续作战</view>
+    <view class="ov-btn alt" bindtap="onMute">{{muted ? '🔇 声音关' : '🔊 声音开'}}</view>
+    <view class="ov-btn alt" bindtap="onRestart">重新开始</view>
+  </view>
+
+  <!-- 失败 -->
+  <view class="overlay" wx:if="{{gameOver}}">
+    <view class="ov-head lose">任务失败</view>
+    <view class="ov-stats">
+      <view class="row"><text>到达波次</text><text>{{overStats.wave}}</text></view>
+      <view class="row"><text>击杀总数</text><text>{{overStats.kills}}</text></view>
+      <view class="row"><text>最终得分</text><text>{{overStats.score}}</text></view>
+      <view class="row"><text>命中率</text><text>{{overStats.acc}}</text></view>
+      <view class="row"><text>存活时间</text><text>{{overStats.time}}</text></view>
+      <view class="row best"><text>历史最佳</text><text>{{overStats.best}}</text></view>
+    </view>
+    <view class="ov-btn" bindtap="onRestart">再来一次</view>
+    <view class="ov-btn alt" bindtap="onBack">返回首页</view>
+  </view>
+
+  <!-- 胜利 -->
+  <view class="overlay" wx:if="{{victory}}">
+    <view class="ov-head win">区域已肃清</view>
+    <view class="ov-stats">
+      <view class="row"><text>通关波次</text><text>{{victoryStats.wave}}</text></view>
+      <view class="row"><text>击杀总数</text><text>{{victoryStats.kills}}</text></view>
+      <view class="row"><text>最终得分</text><text>{{victoryStats.score}}</text></view>
+      <view class="row"><text>命中率</text><text>{{victoryStats.acc}}</text></view>
+      <view class="row"><text>用时</text><text>{{victoryStats.time}}</text></view>
+      <view class="row best"><text>历史最佳</text><text>{{victoryStats.best}}</text></view>
+    </view>
+    <view class="ov-btn" bindtap="onContinueEndless">继续作战</view>
+    <view class="ov-btn alt" bindtap="onRestart">重新开始</view>
+  </view>
+
+</view>
