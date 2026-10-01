@@ -3,563 +3,339 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>游戏合集</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700;900&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Noto Sans SC', sans-serif;
-            background: #06080f;
-            min-height: 100vh;
-            min-height: 100dvh;
-            overflow-x: hidden;
-            color: #e0e0e0;
-        }
-
-        /* ========== 动态背景 ========== */
-        .bg-canvas {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        .grid-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            background:
-                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px),
-                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px);
-            background-size: 60px 60px;
-            animation: gridDrift 20s linear infinite;
-        }
-
-        @keyframes gridDrift {
-            from { transform: translate(0, 0); }
-            to { transform: translate(60px, 60px); }
-        }
-
-        .glow-orb {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(120px);
-            pointer-events: none;
-            z-index: 0;
-            animation: orbFloat 12s ease-in-out infinite alternate;
-        }
-        .glow-orb.a {
-            width: 500px; height: 500px;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.25), transparent 70%);
-            top: -10%; left: -10%;
-        }
-        .glow-orb.b {
-            width: 400px; height: 400px;
-            background: radial-gradient(circle, rgba(236, 72, 153, 0.2), transparent 70%);
-            bottom: -10%; right: -10%;
-            animation-delay: -4s;
-        }
-        .glow-orb.c {
-            width: 350px; height: 350px;
-            background: radial-gradient(circle, rgba(16, 185, 129, 0.15), transparent 70%);
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            animation-delay: -8s;
-        }
-
-        @keyframes orbFloat {
-            0% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(30px, -20px) scale(1.1); }
-            100% { transform: translate(-20px, 30px) scale(0.95); }
-        }
-
-        /* ========== 主容器 ========== */
-        .container {
-            position: relative;
-            z-index: 1;
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 60px 24px 80px;
-            min-height: 100vh;
-            min-height: 100dvh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* ========== 头部 ========== */
-        .header {
-            text-align: center;
-            margin-bottom: 60px;
-            animation: headerIn 1s ease-out;
-        }
-
-        @keyframes headerIn {
-            from { opacity: 0; transform: translateY(-30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .header-tag {
-            display: inline-block;
-            font-size: 0.7rem;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            color: rgba(255,255,255,0.35);
-            border: 1px solid rgba(255,255,255,0.08);
-            padding: 6px 18px;
-            border-radius: 100px;
-            margin-bottom: 24px;
-            backdrop-filter: blur(10px);
-            background: rgba(255,255,255,0.02);
-        }
-
-        .header h1 {
-            font-size: clamp(2.2rem, 6vw, 3.8rem);
-            font-weight: 900;
-            letter-spacing: 2px;
-            background: linear-gradient(135deg, #818cf8 0%, #e879f9 40%, #34d399 80%, #818cf8 100%);
-            background-size: 300% 300%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: gradientShift 6s ease-in-out infinite;
-            line-height: 1.2;
-        }
-
-        @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        .header p {
-            margin-top: 12px;
-            font-size: 0.95rem;
-            color: rgba(255,255,255,0.35);
-            letter-spacing: 1px;
-        }
-
-        /* ========== 卡片网格 ========== */
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 24px;
-            flex: 1;
-        }
-
-        /* ========== 卡片 ========== */
-        .card {
-            position: relative;
-            text-decoration: none;
-            color: inherit;
-            border-radius: 20px;
-            overflow: hidden;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.06);
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s;
-            display: flex;
-            flex-direction: column;
-            animation: cardIn 0.8s ease-out backwards;
-        }
-        .card:nth-child(1) { animation-delay: 0.1s; }
-        .card:nth-child(2) { animation-delay: 0.2s; }
-        .card:nth-child(3) { animation-delay: 0.3s; }
-        .card:nth-child(4) { animation-delay: 0.4s; }
-
-        @keyframes cardIn {
-            from { opacity: 0; transform: translateY(40px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        .card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-        }
-
-        /* 卡片顶部渐变线 */
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            border-radius: 20px 20px 0 0;
-            opacity: 0;
-            transition: opacity 0.4s;
-        }
-        .card:hover::before { opacity: 1; }
-
-        .card:nth-child(1)::before { background: linear-gradient(90deg, #ffd700, #ff8c00); }
-        .card:nth-child(2)::before { background: linear-gradient(90deg, #d4af37, #8b6914); }
-        .card:nth-child(3)::before { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
-        .card:nth-child(4)::before { background: linear-gradient(90deg, #34d399, #10b981); }
-
-        /* 光扫效果 */
-        .card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
-            transition: left 0.6s;
-            pointer-events: none;
-        }
-        .card:hover::after { left: 100%; }
-
-        .card-visual {
-            height: 160px;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .card-visual-bg {
-            position: absolute;
-            inset: 0;
-            opacity: 0.15;
-            transition: opacity 0.4s;
-        }
-        .card:hover .card-visual-bg { opacity: 0.25; }
-
-        .card:nth-child(1) .card-visual-bg {
-            background: radial-gradient(circle at 30% 50%, #ffd700 0%, transparent 60%),
-                        radial-gradient(circle at 70% 50%, #ff8c00 0%, transparent 60%);
-        }
-        .card:nth-child(2) .card-visual-bg {
-            background: radial-gradient(circle at 30% 50%, #d4af37 0%, transparent 60%),
-                        radial-gradient(circle at 70% 50%, #ff3333 0%, transparent 60%);
-        }
-        .card:nth-child(3) .card-visual-bg {
-            background: radial-gradient(circle at 30% 50%, #60a5fa 0%, transparent 60%),
-                        radial-gradient(circle at 70% 50%, #a78bfa 0%, transparent 60%);
-        }
-        .card:nth-child(4) .card-visual-bg {
-            background: radial-gradient(circle at 30% 50%, #34d399 0%, transparent 60%),
-                        radial-gradient(circle at 70% 50%, #06b6d4 0%, transparent 60%);
-        }
-
-        .card-icon {
-            font-size: 4rem;
-            z-index: 1;
-            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.5));
-            transition: transform 0.4s;
-        }
-        .card:hover .card-icon {
-            transform: scale(1.15) rotate(-3deg);
-        }
-
-        .card-body {
-            padding: 24px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .card-category {
-            font-size: 0.65rem;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-            font-weight: 700;
-        }
-        .card:nth-child(1) .card-category { color: #ffd700; }
-        .card:nth-child(2) .card-category { color: #d4af37; }
-        .card:nth-child(3) .card-category { color: #60a5fa; }
-        .card:nth-child(4) .card-category { color: #34d399; }
-
-        .card-title {
-            font-size: 1.35rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: #fff;
-            line-height: 1.3;
-        }
-
-        .card-desc {
-            font-size: 0.85rem;
-            color: rgba(255,255,255,0.4);
-            line-height: 1.6;
-            flex: 1;
-        }
-
-        .card-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .card-tags {
-            display: flex;
-            gap: 6px;
-        }
-
-        .card-tag {
-            font-size: 0.65rem;
-            padding: 3px 10px;
-            border-radius: 100px;
-            background: rgba(255,255,255,0.05);
-            color: rgba(255,255,255,0.4);
-            border: 1px solid rgba(255,255,255,0.06);
-        }
-
-        .card-arrow {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.05);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: rgba(255,255,255,0.3);
-            font-size: 1rem;
-            transition: all 0.3s;
-        }
-        .card:hover .card-arrow {
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            transform: translateX(4px);
-        }
-
-        /* ========== 页脚 ========== */
-        .footer {
-            text-align: center;
-            margin-top: 60px;
-            padding-top: 24px;
-            border-top: 1px solid rgba(255,255,255,0.05);
-            color: rgba(255,255,255,0.2);
-            font-size: 0.75rem;
-            letter-spacing: 1px;
-        }
-
-        /* ========== 响应式 ========== */
-        @media (max-width: 640px) {
-            .container { padding: 40px 16px 60px; }
-            .header { margin-bottom: 40px; }
-            .cards { gap: 16px; }
-            .card-visual { height: 130px; }
-            .card-body { padding: 18px; }
-        }
-
-        /* ========== 浮动粒子 ========== */
-        .sparkle {
-            position: fixed;
-            width: 2px;
-            height: 2px;
-            background: rgba(255,255,255,0.6);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 0;
-            animation: sparkleFloat linear infinite;
-        }
-
-        @keyframes sparkleFloat {
-            0% { transform: translateY(100vh) scale(0); opacity: 0; }
-            10% { opacity: 1; transform: scale(1); }
-            90% { opacity: 0.6; }
-            100% { transform: translateY(-10vh) scale(0); opacity: 0; }
-        }
-    </style>
+    <meta name="theme-color" content="#050b18">
+    <title>TOI</title>
+    <link href="./statics/img/iceHockey.png" rel="SHORTCUT ICON">
+    <link href="./statics/css/app.css" rel="stylesheet">
+    <script>
+        // 在样式生效前恢复主题，避免刷新时闪白/闪黑（仅读取本地偏好，默认深色）
+        (function () {
+            try {
+                var saved = localStorage.getItem('toi-theme');
+                if (saved === 'light' || saved === 'dark') {
+                    document.documentElement.setAttribute('data-theme', saved);
+                }
+            } catch (e) {
+                /* 隐私模式下 localStorage 不可用，忽略 */
+            }
+        })();
+    </script>
 </head>
 <body>
-
-<!-- 背景装饰 -->
-<div class="grid-overlay"></div>
-<div class="glow-orb a"></div>
-<div class="glow-orb b"></div>
-<div class="glow-orb c"></div>
-<canvas class="bg-canvas" id="bgCanvas"></canvas>
-
-<div class="container">
-    <header class="header">
-        <div class="header-tag">COLLECTION</div>
-        <h1>小游戏合集</h1>
-        <p>选择一个项目开始体验</p>
-    </header>
-
-    <div class="cards">
-        <!-- 成语消消乐 -->
-        <a href="cy.html" class="card">
-            <div class="card-visual">
-                <div class="card-visual-bg"></div>
-                <div class="card-icon">🀄</div>
-            </div>
-            <div class="card-body">
-                <div class="card-category">益智游戏</div>
-                <div class="card-title">成语消消乐</div>
-                <div class="card-desc">15 关递进挑战，从初出茅庐到成语之神。点击汉字组成四字成语，考验你的词汇量和反应速度。</div>
-                <div class="card-footer">
-                    <div class="card-tags">
-                        <span class="card-tag">15 关卡</span>
-                        <span class="card-tag">连击系统</span>
-                    </div>
-                    <div class="card-arrow">→</div>
-                </div>
-            </div>
-        </a>
-
-        <!-- 三角洲行动 -->
-        <a href="sjz.html" class="card">
-            <div class="card-visual">
-                <div class="card-visual-bg"></div>
-                <div class="card-icon">🎯</div>
-            </div>
-            <div class="card-body">
-                <div class="card-category">射击游戏</div>
-                <div class="card-title">三角洲行动</div>
-                <div class="card-desc">化身 G.T.I. 特战干员"猎鹰"，潜入敌方据点逐波肃清。双摇杆操控（移动+瞄准），四类敌人、四把武器，连击与战场补给，体验战术推进。</div>
-                <div class="card-footer">
-                    <div class="card-tags">
-                        <span class="card-tag">波次攻防</span>
-                        <span class="card-tag">双摇杆</span>
-                    </div>
-                    <div class="card-arrow">→</div>
-                </div>
-            </div>
-        </a>
-
-        <!-- 冰球计时 v1 -->
-        <a href="711.html" class="card">
-            <div class="card-visual">
-                <div class="card-visual-bg"></div>
-                <div class="card-icon">🏒</div>
-            </div>
-            <div class="card-body">
-                <div class="card-category">实用工具</div>
-                <div class="card-title">TOI 临时</div>
-                <div class="card-desc">专业冰球比赛计时与数据统计工具，支持比赛时间管理、进球统计和比赛数据记录。</div>
-                <div class="card-footer">
-                    <div class="card-tags">
-                        <span class="card-tag">计时器</span>
-                        <span class="card-tag">数据统计</span>
-                    </div>
-                    <div class="card-arrow">→</div>
-                </div>
-            </div>
-        </a>
-
-        <!-- 冰球计时 v2 -->
-        <a href="timers.html" class="card">
-            <div class="card-visual">
-                <div class="card-visual-bg"></div>
-                <div class="card-icon">⏱️</div>
-            </div>
-            <div class="card-body">
-                <div class="card-category">实用工具</div>
-                <div class="card-title">TOI SH</div>
-                <div class="card-desc">冰球比赛计时统计系统的另一版本，功能布局有所调整，适合不同使用场景。</div>
-                <div class="card-footer">
-                    <div class="card-tags">
-                        <span class="card-tag">计时器</span>
-                        <span class="card-tag">替代版本</span>
-                    </div>
-                    <div class="card-arrow">→</div>
-                </div>
-            </div>
-        </a>
-    </div>
-
-    <footer class="footer">
-        BUILT WITH ❤️ — TOI PROJECT COLLECTION
-    </footer>
+<!-- 冰场底纹（纯装饰，不参与交互） -->
+<div class="rink-bg" aria-hidden="true">
+    <span class="rink-bg__circle"></span>
+    <span class="rink-bg__line rink-bg__line--a"></span>
+    <span class="rink-bg__line rink-bg__line--b"></span>
 </div>
 
-<script>
-    // 浮动粒子
-    (function() {
-        const count = 30;
-        for (let i = 0; i < count; i++) {
-            const el = document.createElement('div');
-            el.className = 'sparkle';
-            el.style.left = Math.random() * 100 + '%';
-            el.style.animationDuration = (12 + Math.random() * 18) + 's';
-            el.style.animationDelay = Math.random() * 20 + 's';
-            el.style.width = el.style.height = (1 + Math.random() * 2) + 'px';
-            document.body.appendChild(el);
-        }
-    })();
+<div class="app">
+    <!-- ===== 顶部：赛事信息 + 计分牌 ===== -->
+    <header class="topbar">
+        <div class="brand">
+            <img class="brand__logo" src="./statics/img/iceHockey.png" alt="TOI">
+            <div class="brand__text">
+                <h1 class="brand__title">TOI</h1>
+                <p class="brand__sub">上场时间统计</p>
+            </div>
+        </div>
 
-    // Canvas 连线粒子
-    (function() {
-        const canvas = document.getElementById('bgCanvas');
-        const ctx = canvas.getContext('2d');
-        let w, h, dots = [];
+        <div class="scoreboard">
+            <div class="scoreboard__team" id="homeTeamBox">
+                <span class="scoreboard__name">主队</span>
+                <span class="scoreboard__score" id="homeScore">0</span>
+            </div>
+            <div class="scoreboard__clock">
+                <div id="globalTimer" class="timer">00:00</div>
+                <span class="runstate" id="runState" aria-live="polite"></span>
+            </div>
+            <div class="scoreboard__team scoreboard__team--away" id="awayTeamBox">
+                <span class="scoreboard__name">客队</span>
+                <span class="scoreboard__score" id="awayScore">0</span>
+            </div>
+        </div>
 
-        function resize() {
-            w = canvas.width = window.innerWidth;
-            h = canvas.height = window.innerHeight;
-        }
-        resize();
-        window.addEventListener('resize', resize);
+        <div class="meta">
+            <div class="meta__chip">
+                <span class="meta__label">本方</span>
+                <strong class="meta__value" id="metaTeam">主队</strong>
+            </div>
+            <div class="meta__chip">
+                <span class="meta__label">人数</span>
+                <strong class="meta__value" id="metaPlayers">—</strong>
+            </div>
+            <div class="meta__chip">
+                <span class="meta__label">时长</span>
+                <strong class="meta__value" id="metaMinutes">—</strong>
+            </div>
+            <div class="meta__chip meta__chip--onice">
+                <span class="meta__label">在场</span>
+                <strong class="meta__value" id="metaOnIce">0</strong>
+            </div>
+            <button id="themeToggle" class="theme-toggle" type="button" title="切换明亮/深色模式"
+                    aria-label="切换明亮/深色模式">
+                <svg class="icon icon--sun" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="4.2"></circle>
+                    <line x1="12" y1="2.5" x2="12" y2="5"></line>
+                    <line x1="12" y1="19" x2="12" y2="21.5"></line>
+                    <line x1="4.2" y1="4.2" x2="6" y2="6"></line>
+                    <line x1="18" y1="18" x2="19.8" y2="19.8"></line>
+                    <line x1="2.5" y1="12" x2="5" y2="12"></line>
+                    <line x1="19" y1="12" x2="21.5" y2="12"></line>
+                    <line x1="4.2" y1="19.8" x2="6" y2="18"></line>
+                    <line x1="18" y1="6" x2="19.8" y2="4.2"></line>
+                </svg>
+                <svg class="icon icon--moon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20.5 14.4A8.6 8.6 0 1 1 9.6 3.5a6.9 6.9 0 0 0 10.9 10.9z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
 
-        const DOT_COUNT = 50;
-        for (let i = 0; i < DOT_COUNT; i++) {
-            dots.push({
-                x: Math.random() * w,
-                y: Math.random() * h,
-                vx: (Math.random() - 0.5) * 0.4,
-                vy: (Math.random() - 0.5) * 0.4,
-                r: Math.random() * 1.5 + 0.5
-            });
-        }
+    <!-- ===== 中部：出场阵容卡片 ===== -->
+    <main class="board">
+        <div class="board__head">
+            <h2 class="board__title">出场阵容</h2>
+            <div class="legend">
+                <span class="legend__item legend__item--on"><i></i>在场</span>
+                <span class="legend__item legend__item--goalie"><i></i>位置 G · 守门员</span>
+                <span class="legend__hint">点击卡片上/下场 · 悬停卡片右上角编辑</span>
+            </div>
+        </div>
 
-        function draw() {
-            ctx.clearRect(0, 0, w, h);
+        <div class="container">
+            <!-- 卡片由 JavaScript 动态生成 -->
+        </div>
+    </main>
 
-            dots.forEach(d => {
-                d.x += d.vx;
-                d.y += d.vy;
-                if (d.x < 0) d.x = w;
-                if (d.x > w) d.x = 0;
-                if (d.y < 0) d.y = h;
-                if (d.y > h) d.y = 0;
+    <!-- ===== 结果区 ===== -->
+    <section class="results-container">
+        <div id="goals-display" class="panel" style="display: none;">
+            <h3 class="panel__title">进球记录</h3>
+            <div id="goals-list"></div>
+        </div>
 
-                ctx.beginPath();
-                ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255,255,255,0.15)';
-                ctx.fill();
-            });
+        <table id="resultsTable2" class="results-table" style="display: none;">
+            <thead>
+            <tr>
+                <th>得分时间</th>
+                <th>得分/失分</th>
+                <th>球员号码</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
 
-            // 连线
-            const maxDist = 150;
-            for (let i = 0; i < dots.length; i++) {
-                for (let j = i + 1; j < dots.length; j++) {
-                    const dx = dots[i].x - dots[j].x;
-                    const dy = dots[i].y - dots[j].y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < maxDist) {
-                        ctx.beginPath();
-                        ctx.moveTo(dots[i].x, dots[i].y);
-                        ctx.lineTo(dots[j].x, dots[j].y);
-                        ctx.strokeStyle = `rgba(255,255,255,${0.04 * (1 - dist / maxDist)})`;
-                        ctx.lineWidth = 0.5;
-                        ctx.stroke();
-                    }
-                }
-            }
+        <table id="resultsTable" class="results-table" style="display: none;">
+            <thead>
+            <tr>
+                <th>号码</th>
+                <th>位置</th>
+                <th>经过时长 (分:秒)</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </section>
 
-            requestAnimationFrame(draw);
-        }
-        draw();
-    })();
+    <!-- ===== 快捷键说明 ===== -->
+    <details class="shortcut-info" open>
+        <summary class="shortcut-info__summary">操作快捷键</summary>
+        <div class="shortcut-grid">
+            <div class="shortcut-item">双击<span class="shortcut-key">空格</span> 切换开始/暂停</div>
+            <div class="shortcut-item"><span class="shortcut-key">←</span> 快退 (增加倒计时时间)</div>
+            <div class="shortcut-item"><span class="shortcut-key">→</span> 快进 (减少倒计时时间)</div>
+            <div class="shortcut-item"><span class="shortcut-key">+</span> 得分记录</div>
+            <div class="shortcut-item"><span class="shortcut-key">-</span> 失分记录</div>
 
-    // 鼠标跟随光效
-    document.addEventListener('mousemove', (e) => {
-        document.querySelectorAll('.glow-orb.c')[0].style.transform =
-            `translate(${e.clientX - window.innerWidth / 2}px, ${e.clientY - window.innerHeight / 2}px)`;
-    });
-</script>
+            <div class="shortcut-item">点击<span class="shortcut-key">编辑</span> 设置选手号码|位置</div>
+            <div class="shortcut-item">点击<span class="shortcut-key">查看</span> 显示选手在场时间</div>
+            <div class="shortcut-item">点击<span class="shortcut-key">重置</span> 还原计时保留号码|位置</div>
+            <div class="shortcut-item">点击<span class="shortcut-key">导出</span> 下载选手在场时间数据</div>
+            <div class="shortcut-item">位置填<span class="shortcut-key">G</span> 该队员按守门员金色高亮</div>
+        </div>
+    </details>
 
+    <!-- ===== 底部：操作台（吸底） ===== -->
+    <div class="controls">
+        <div class="controls__group">
+            <span class="controls__label">时间微调</span>
+            <button id="rewindButton" class="secondary" title="快退：增加倒计时时间">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                    <line x1="5" y1="19" x2="5" y2="5"></line>
+                </svg>
+                <span>快退</span>
+            </button>
+            <button id="forwardButton" class="secondary" title="快进：减少倒计时时间">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                    <line x1="19" y1="5" x2="19" y2="19"></line>
+                </svg>
+                <span>快进</span>
+            </button>
+        </div>
+
+        <div class="controls__group controls__group--run">
+            <button id="startButton" class="success">
+                <svg class="icon icon--solid" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M7 4.5 19.5 12 7 19.5z"></path>
+                </svg>
+                <span>开始</span>
+            </button>
+            <button id="pauseButton" class="secondary disabled">
+                <svg class="icon icon--solid" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="6.5" y="4.5" width="3.8" height="15" rx="1.1"></rect>
+                    <rect x="13.7" y="4.5" width="3.8" height="15" rx="1.1"></rect>
+                </svg>
+                <span>暂停</span>
+            </button>
+        </div>
+
+        <div class="controls__group">
+            <span class="controls__label">比分</span>
+            <button id="addButton" class="accent">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="8.5"></circle>
+                    <line x1="12" y1="8.2" x2="12" y2="15.8"></line>
+                    <line x1="8.2" y1="12" x2="15.8" y2="12"></line>
+                </svg>
+                <span>得分</span>
+            </button>
+            <button id="reduceButton" class="accent">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="8.5"></circle>
+                    <line x1="8.2" y1="12" x2="15.8" y2="12"></line>
+                </svg>
+                <span>失分</span>
+            </button>
+        </div>
+
+        <div class="controls__group">
+            <span class="controls__label">阵容</span>
+            <button id="changeButton" class="secondary" title="全换：换下除 G 外的全部在场队员">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <polyline points="21 5 21 10 16 10"></polyline>
+                    <polyline points="3 19 3 14 8 14"></polyline>
+                    <path d="M5.2 9.2A8 8 0 0 1 18.6 6.6L21 10"></path>
+                    <path d="M18.8 14.8A8 8 0 0 1 5.4 17.4L3 14"></path>
+                </svg>
+                <span>全换</span>
+            </button>
+            <button id="batchButton" class="secondary">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7.5 18.5 3 20l1.5-4.5z"></path>
+                    <line x1="14" y1="6" x2="18" y2="10"></line>
+                </svg>
+                <span>编辑</span>
+            </button>
+        </div>
+
+        <div class="controls__group controls__group--data">
+            <button id="endButton" class="secondary">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <line x1="9" y1="6.5" x2="20" y2="6.5"></line>
+                    <line x1="9" y1="12" x2="20" y2="12"></line>
+                    <line x1="9" y1="17.5" x2="20" y2="17.5"></line>
+                    <circle cx="4.6" cy="6.5" r="1.1"></circle>
+                    <circle cx="4.6" cy="12" r="1.1"></circle>
+                    <circle cx="4.6" cy="17.5" r="1.1"></circle>
+                </svg>
+                <span>查看</span>
+            </button>
+            <button id="exportButton" class="secondary">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20.5 15.5V19a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-3.5"></path>
+                    <polyline points="7.5 10.5 12 15 16.5 10.5"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3.5"></line>
+                </svg>
+                <span>导出</span>
+            </button>
+            <button id="resetButton" class="danger">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <polyline points="3.5 5 3.5 10.5 9 10.5"></polyline>
+                    <path d="M5.6 15.2A8 8 0 1 0 6.4 7.4L3.5 10.5"></path>
+                </svg>
+                <span>重置</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 比赛设置 ===== -->
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <div class="center modal-title" style="font-weight: 700;font-size: 20px;">设置比赛内容</div>
+        <div class="center">
+            <table class="results-table" style="width: 100%;">
+                <tbody>
+                <tr>
+                    <td>队员人数:</td>
+                    <td><input id="input1" type="number" value="15"></td>
+                </tr>
+                <tr>
+                    <td>比赛时长(分钟):</td>
+                    <td><input id="input2" type="number" value="12"></td>
+                </tr>
+                <tr>
+                    <td>主/客队:</td>
+                    <td>
+                        <select id="input3" style="width:100%;border:none;">
+                            <option value="1" selected>主队</option>
+                            <option value="2">客队</option>
+                        </select>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="center">
+            <button id="submitButton">提交</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 批量编辑 ===== -->
+<div id="batchModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div class="center modal-title" style="font-weight: 700;font-size: 20px;">编辑</div>
+        <div class="center">
+            <table id="batchTable" class="results-table" style="display: none;width: 100%;">
+                <thead>
+                <tr>
+                    <th>号码</th>
+                    <th>位置</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="center">
+            <button id="batchSubmitButton">提交</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 球员编辑 / 得分 ===== -->
+<div id="scoreModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div class="center modal-title" style="font-weight: 700;font-size: 20px;" id="scoreTitle">得分/失分</div>
+        <div class="center" id="scoreContext" style="justify-content: center;display: flex;"></div>
+        <div class="center">
+            <button id="scoreSubmitButton">提交</button>
+        </div>
+    </div>
+</div>
+
+<div id="tipModal">
+    得分记录成功
+</div>
+<textarea id="copyText" rows="30" cols="50" style="position: fixed;left: 0px;opacity: 0;z-index: -100;"></textarea>
+
+<script src="./statics/js/xlsx.full.min.js"></script>
+<script src="./statics/js/timer_plus.js"></script>
+<script src="./statics/js/console-ui.js"></script>
 </body>
 </html>

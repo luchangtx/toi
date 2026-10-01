@@ -1,9 +1,0 @@
-{
-  "name": "room",
-  "version": "1.0.0",
-  "description": "联机房间中转云函数（你画我猜 / 联机五子棋）",
-  "main": "index.js",
-  "dependencies": {
-    "wx-server-sdk": "~2.6.3"
-  }
-}

@@ -1,0 +1,1887 @@
+/* =============================================================
+   TOI 冰球比赛指挥台 · 全新界面样式
+   -------------------------------------------------------------
+   说明：
+   1. 本文件是纯视觉层，不承载任何业务逻辑。
+   2. 原逻辑脚本 statics/js/timer_plus.js 依赖的类名/ID 全部保留：
+      .container .card .selected .number .role .timer .score
+      .edit-button .results-table .modal .modal-content .close .center
+      .controls button.secondary/.danger/.success/.accent/.disabled
+      .goal-entry .watermark #globalTimer #tipModal(.show) 等。
+   3. 原脚本会用 var(--warning-color) 给 G 位置徽标写内联样式，
+      因此该变量必须保留。
+   ============================================================= */
+
+/* ---------- 设计变量 ---------- */
+:root {
+    /* 原脚本 / 兼容保留的变量名 */
+    --primary-color: #2f7ddb;
+    --secondary-color: #e11d48;
+    --accent-color: #ffffff;
+    --timer-color: #2c3e50;
+    --card-bg: #f8f9fa;
+    --selected-card-bg: #e6f2ff;
+    --button-bg: #1a4b8c;
+    --button-hover: #0d3a73;
+    --button-active: #0a2d59;
+    --disabled-button: #cccccc;
+    --success-color: #22c55e;
+    --danger-color: #ef4444;
+    /* 原脚本给 G 徽标写的是 var(--warning-color)，与 --goalie 取同一色值，保证同屏只有一种“守门员金” */
+    --warning-color: #f5a524;
+    --border-radius: 16px;
+    --box-shadow: 0 18px 40px rgba(2, 8, 23, 0.45);
+    --transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* 新主题变量 */
+    --ink-900: #040814;
+    --ink-800: #070f22;
+    --ink-700: #0c1730;
+    --ink-600: #12203d;
+    --surface: rgba(255, 255, 255, 0.045);
+    --surface-2: rgba(255, 255, 255, 0.075);
+    --surface-3: rgba(255, 255, 255, 0.11);
+    --line: rgba(148, 180, 235, 0.16);
+    --line-strong: rgba(148, 180, 235, 0.32);
+    --text: #e8f0ff;
+    --text-dim: #9db0d4;
+    --text-mute: #6c7fa8;
+    --ice: #38bdf8;
+    --ice-deep: #0ea5e9;
+    --ice-glow: rgba(56, 189, 248, 0.55);
+    --goalie: #f5a524;
+    --goalie-2: #ffcc66;
+    --goalie-glow: rgba(245, 165, 36, 0.45);
+    --edit-bg: rgba(8, 16, 34, 0.86);
+    --close-bg: rgba(8, 16, 34, 0.9);
+    --font-sans: "Montserrat", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+    /* 内联矢量图标（用于脚本生成的铅笔与叉号字符，避免使用 emoji） */
+    --icon-pencil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16.5 3.5a2.12 2.12 0 0 1 3 3L7.5 18.5 3 20l1.5-4.5z'/%3E%3Cline x1='14' y1='6' x2='18' y2='10'/%3E%3C/svg%3E");
+    --icon-close: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3C/svg%3E");
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    color: var(--text);
+    background:
+            radial-gradient(1200px 700px at 12% -10%, rgba(56, 189, 248, 0.18), transparent 60%),
+            radial-gradient(900px 600px at 100% 0%, rgba(99, 102, 241, 0.16), transparent 55%),
+            linear-gradient(180deg, var(--ink-800) 0%, var(--ink-900) 100%);
+    background-attachment: fixed;
+    line-height: 1.35;
+    padding: 18px clamp(10px, 2vw, 26px) 0;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 冰场装饰底纹 ---------- */
+.rink-bg {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.rink-bg__circle {
+    position: absolute;
+    top: 32%;
+    left: 50%;
+    width: min(58vw, 720px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 1px solid rgba(120, 170, 255, 0.09);
+    box-shadow: inset 0 0 120px rgba(56, 189, 248, 0.05);
+}
+
+.rink-bg__line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, rgba(120, 170, 255, 0.10), transparent);
+}
+
+.rink-bg__line--a { left: 24%; }
+.rink-bg__line--b { right: 24%; }
+
+/* ---------- 布局骨架 ---------- */
+.app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1560px;
+    min-height: calc(100vh - 40px);
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-bottom: 4px;
+}
+
+/* ---------- 顶栏 ---------- */
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    border: 1px solid var(--line);
+    border-radius: var(--border-radius);
+    background: linear-gradient(180deg, rgba(12, 23, 48, 0.94), rgba(7, 15, 34, 0.9));
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 14px 34px rgba(2, 6, 20, 0.55);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.brand__logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--line);
+    padding: 4px;
+    object-fit: contain;
+    flex: none;
+}
+
+.brand__text {
+    min-width: 0;
+}
+
+.brand__title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.brand__sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* ---------- 计分牌 ---------- */
+.scoreboard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(10px, 2vw, 26px);
+    padding: 8px 18px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: rgba(4, 10, 24, 0.72);
+    box-shadow: inset 0 0 40px rgba(56, 189, 248, 0.06);
+}
+
+.scoreboard__team {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    transition: var(--transition);
+}
+
+.scoreboard__team.is-us {
+    background: rgba(56, 189, 248, 0.10);
+    box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.35);
+}
+
+.scoreboard__name {
+    font-size: 13px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+.scoreboard__score {
+    font-family: var(--font-mono);
+    font-size: clamp(24px, 2.4vw, 32px);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    min-width: 1.4em;
+    text-align: center;
+    color: #fff;
+    text-shadow: 0 0 18px rgba(56, 189, 248, 0.45);
+}
+
+.scoreboard__clock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding-left: clamp(10px, 2vw, 26px);
+    border-left: 1px solid var(--line);
+}
+
+#globalTimer {
+    font-family: var(--font-mono);
+    font-size: clamp(38px, 4.6vw, 60px);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: 2px;
+    padding: 6px 18px;
+    min-width: 4.6em;
+    text-align: center;
+    color: #fff;
+    background: linear-gradient(180deg, rgba(56, 189, 248, 0.16), rgba(56, 189, 248, 0.04));
+    border: 1px solid rgba(56, 189, 248, 0.32);
+    border-radius: 12px;
+    text-shadow: 0 0 22px rgba(56, 189, 248, 0.55);
+    transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+}
+
+#globalTimer.is-urgent {
+    color: #ffd9a0;
+    border-color: rgba(245, 165, 36, 0.55);
+    background: linear-gradient(180deg, rgba(245, 165, 36, 0.20), rgba(245, 165, 36, 0.05));
+    text-shadow: 0 0 24px rgba(245, 165, 36, 0.6);
+    animation: pulse 1s ease-in-out infinite;
+}
+
+#globalTimer.is-final {
+    color: #ffc9c9;
+    border-color: rgba(239, 68, 68, 0.6);
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.22), rgba(239, 68, 68, 0.05));
+    animation: none;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.72; }
+}
+
+.runstate {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 2px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.04);
+    white-space: nowrap;
+}
+
+.runstate.is-running {
+    color: #06210f;
+    background: linear-gradient(180deg, #4ade80, #22c55e);
+    border-color: transparent;
+    font-weight: 700;
+}
+
+/* ---------- 比赛信息 ---------- */
+.meta {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.meta__chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 62px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+}
+
+.meta__label {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+}
+
+.meta__value {
+    font-size: 16px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.meta__chip--onice .meta__value {
+    color: var(--ice);
+    text-shadow: 0 0 14px var(--ice-glow);
+}
+
+/* ---------- 明暗模式切换 ---------- */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    min-width: 44px;
+    height: 46px;
+    padding: 0;
+    color: var(--text-dim);
+    cursor: pointer;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    transition: var(--transition);
+}
+
+.theme-toggle:hover {
+    color: var(--ice);
+    border-color: var(--ice);
+    background: rgba(56, 189, 248, 0.12);
+    transform: translateY(-1px);
+}
+
+.theme-toggle:focus-visible {
+    outline: 2px solid var(--ice);
+    outline-offset: 2px;
+}
+
+.theme-toggle .icon {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.theme-toggle .icon--moon {
+    display: none;
+}
+
+[data-theme="light"] .theme-toggle .icon--sun {
+    display: none;
+}
+
+[data-theme="light"] .theme-toggle .icon--moon {
+    display: block;
+}
+
+/* ---------- 阵容面板 ---------- */
+.board {
+    border: 1px solid var(--line);
+    border-radius: var(--border-radius);
+    background: linear-gradient(180deg, rgba(12, 23, 48, 0.72), rgba(7, 15, 34, 0.62));
+    padding: 16px;
+    box-shadow: var(--box-shadow);
+}
+
+.board__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.board__title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.board__title::before {
+    content: "";
+    width: 4px;
+    height: 18px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--ice), #6366f1);
+    box-shadow: 0 0 12px var(--ice-glow);
+}
+
+.legend {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+.legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.legend__item i {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.legend__item--on i {
+    background: var(--ice);
+    box-shadow: 0 0 10px var(--ice-glow);
+}
+
+.legend__item--goalie i {
+    background: linear-gradient(135deg, var(--goalie-2), var(--goalie));
+    box-shadow: 0 0 10px var(--goalie-glow);
+}
+
+.legend__hint {
+    opacity: 0.75;
+    border-left: 1px solid var(--line);
+    padding-left: 14px;
+}
+
+/* ---------- 卡片网格 ---------- */
+.container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 12px;
+}
+
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 142px;
+    padding: 26px 10px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    overflow: hidden;
+    transition: var(--transition);
+    box-shadow: 0 6px 18px rgba(2, 6, 20, 0.35);
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    border-color: var(--line-strong);
+    box-shadow: 0 14px 28px rgba(2, 6, 20, 0.5);
+}
+
+.card:active {
+    transform: translateY(-1px) scale(0.985);
+}
+
+.card:focus-visible {
+    outline: 2px solid var(--ice);
+    outline-offset: 2px;
+}
+
+/* 在场状态 */
+.card.selected {
+    border-color: rgba(56, 189, 248, 0.75);
+    background: linear-gradient(180deg, rgba(56, 189, 248, 0.22), rgba(56, 189, 248, 0.05));
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35), 0 12px 30px rgba(14, 165, 233, 0.28);
+}
+
+.card.selected::before {
+    content: "在场";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    letter-spacing: 3px;
+    padding: 3px 16px 4px;
+    color: #04121f;
+    font-weight: 700;
+    white-space: nowrap;
+    background: linear-gradient(180deg, #7dd3fc, var(--ice));
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 4px 14px var(--ice-glow);
+}
+
+/* 守门员（位置 = G）金色区分 */
+.card.is-goalie {
+    border-color: rgba(245, 165, 36, 0.8);
+    background: linear-gradient(180deg, rgba(245, 165, 36, 0.20), rgba(245, 165, 36, 0.045));
+    box-shadow: inset 4px 0 0 0 var(--goalie), 0 10px 26px rgba(245, 165, 36, 0.18);
+}
+
+.card.is-goalie .number {
+    color: var(--goalie-2);
+    text-shadow: 0 0 22px var(--goalie-glow);
+}
+
+.card.is-goalie .timer {
+    color: #ffe6b8;
+}
+
+.card.is-goalie::after {
+    content: "守门员";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 3px 12px 4px;
+    color: #2a1a02;
+    font-weight: 700;
+    white-space: nowrap;
+    background: linear-gradient(180deg, var(--goalie-2), var(--goalie));
+    border-radius: 10px 10px 0 0;
+}
+
+.card.is-goalie.selected {
+    border-color: var(--goalie-2);
+    background: linear-gradient(180deg, rgba(245, 165, 36, 0.26), rgba(56, 189, 248, 0.08));
+    box-shadow: inset 4px 0 0 0 var(--goalie), 0 0 0 1px rgba(56, 189, 248, 0.4),
+    0 12px 30px rgba(245, 165, 36, 0.25);
+}
+
+/* 号码 */
+.number {
+    font-family: var(--font-sans);
+    font-size: clamp(30px, 3.4vw, 44px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 1px;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* 位置徽标 */
+.role {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--line);
+    box-shadow: 0 3px 10px rgba(2, 6, 20, 0.45);
+}
+
+.role:empty::after {
+    content: "—";
+    opacity: 0.4;
+    font-size: 13px;
+}
+
+/* 计时 */
+.timer {
+    font-family: var(--font-mono);
+    font-size: clamp(17px, 1.6vw, 21px);
+    font-weight: 600;
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+    color: #cfe6ff;
+    padding: 2px 8px;
+    border-radius: 8px;
+    background: rgba(3, 9, 22, 0.5);
+}
+
+.card.selected .timer {
+    color: #ffffff;
+}
+
+/* 个人得分徽标（有内容时才显示，原逻辑保留） */
+.score {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--secondary-color);
+    box-shadow: 0 3px 10px rgba(225, 29, 72, 0.45);
+}
+
+.score:empty {
+    display: none;
+}
+
+/* 编辑按钮 */
+/* 编辑按钮：隐藏脚本生成的铅笔字符，改用矢量图标 */
+.edit-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--edit-bg);
+    color: var(--ice);
+    font-size: 0;
+    line-height: 0;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.edit-button::after {
+    content: "";
+    width: 15px;
+    height: 15px;
+    background-color: currentColor;
+    -webkit-mask: var(--icon-pencil) center / contain no-repeat;
+    mask: var(--icon-pencil) center / contain no-repeat;
+}
+
+.card:hover .edit-button,
+.card:focus-within .edit-button {
+    display: flex;
+}
+
+.edit-button:hover {
+    color: #04121f;
+    background: var(--ice);
+    transform: scale(1.06);
+}
+
+/* ---------- 结果区 ---------- */
+.results-container {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.panel {
+    border: 1px solid var(--line);
+    border-radius: var(--border-radius);
+    background: linear-gradient(180deg, rgba(12, 23, 48, 0.72), rgba(7, 15, 34, 0.62));
+    padding: 16px;
+    box-shadow: var(--box-shadow);
+}
+
+.panel__title {
+    font-size: 14px;
+    letter-spacing: 3px;
+    margin-bottom: 12px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.panel__title::before {
+    content: "";
+    width: 4px;
+    height: 16px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--goalie-2), var(--goalie));
+}
+
+.goal-entry {
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--ice);
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 14px;
+    color: var(--text-dim);
+    transition: var(--transition);
+}
+
+.goal-entry:hover {
+    background: rgba(56, 189, 248, 0.08);
+    transform: translateX(3px);
+}
+
+.goal-entry strong {
+    color: #fff;
+    margin-right: 4px;
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(12, 23, 48, 0.78), rgba(7, 15, 34, 0.68));
+    box-shadow: var(--box-shadow);
+}
+
+.results-table th,
+.results-table td {
+    padding: 11px 14px;
+    text-align: center;
+    border-bottom: 1px solid rgba(148, 180, 235, 0.10);
+    font-variant-numeric: tabular-nums;
+}
+
+.results-table th {
+    font-size: 12px;
+    letter-spacing: 2px;
+    font-weight: 600;
+    color: #cfe2ff;
+    background: rgba(56, 189, 248, 0.10);
+    border-bottom: 1px solid var(--line-strong);
+}
+
+.results-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.results-table tbody tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.022);
+}
+
+.results-table tbody tr:hover td {
+    background: rgba(56, 189, 248, 0.08);
+}
+
+/* 表格中的守门员行同样金色区分 */
+.results-table tbody tr.is-goalie td:first-child {
+    box-shadow: inset 3px 0 0 0 var(--goalie);
+    color: var(--goalie-2);
+    font-weight: 700;
+}
+
+.results-table tbody tr.is-goalie td:nth-child(2) {
+    color: var(--goalie-2);
+    font-weight: 700;
+}
+
+/* 输入控件 */
+input,
+select {
+    height: 38px;
+    padding: 6px 12px;
+    color: var(--text);
+    background: rgba(4, 10, 24, 0.7);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: var(--font-sans);
+    transition: var(--transition);
+}
+
+input::placeholder {
+    color: var(--text-dim);
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: var(--ice);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
+}
+
+select option {
+    background: var(--ink-700);
+    color: var(--text);
+}
+
+/* ---------- 操作台 ---------- */
+.controls {
+    position: sticky;
+    bottom: 0;
+    z-index: 70;
+    margin-top: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 14px;
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--border-radius);
+    background: linear-gradient(180deg, rgba(10, 20, 42, 0.92), rgba(6, 12, 28, 0.96));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 -10px 34px rgba(2, 6, 20, 0.6);
+}
+
+.controls__group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.controls__group--run {
+    border-color: rgba(56, 189, 248, 0.3);
+    background: rgba(56, 189, 248, 0.06);
+}
+
+.controls__group--data {
+    border-color: rgba(239, 68, 68, 0.22);
+}
+
+.controls__label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding-right: 2px;
+    white-space: nowrap;
+}
+
+.controls button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 66px;
+    padding: 10px 16px;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: #eaf4ff;
+    cursor: pointer;
+    border: 1px solid var(--line-strong);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.04));
+    transition: var(--transition);
+}
+
+.controls button:hover:not(.disabled) {
+    transform: translateY(-2px);
+    border-color: var(--ice);
+    box-shadow: 0 8px 20px rgba(2, 6, 20, 0.5), 0 0 0 1px rgba(56, 189, 248, 0.35);
+}
+
+.controls button:active:not(.disabled) {
+    transform: translateY(0);
+}
+
+.controls button:focus-visible {
+    outline: 2px solid var(--ice);
+    outline-offset: 2px;
+}
+
+/* 矢量图标（不使用 emoji） */
+.controls button .icon {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.controls button .icon--solid {
+    fill: currentColor;
+    stroke: none;
+}
+
+.controls button.secondary {
+    color: #d7e6ff;
+}
+
+.controls button.success {
+    color: #05230f;
+    border-color: transparent;
+    background: linear-gradient(180deg, #5ee98b, #22c55e);
+    box-shadow: 0 6px 18px rgba(34, 197, 94, 0.32);
+}
+
+.controls button.success:hover:not(.disabled) {
+    background: linear-gradient(180deg, #6ff09a, #1fae54);
+}
+
+.controls button.accent {
+    color: #2a1a02;
+    border-color: transparent;
+    background: linear-gradient(180deg, var(--goalie-2), var(--goalie));
+    box-shadow: 0 6px 18px rgba(245, 165, 36, 0.3);
+}
+
+.controls button.accent:hover:not(.disabled) {
+    background: linear-gradient(180deg, #ffd98a, #e0961c);
+}
+
+.controls button.danger {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(180deg, #f87171, var(--danger-color));
+    box-shadow: 0 6px 18px rgba(239, 68, 68, 0.3);
+}
+
+.controls button.danger:hover:not(.disabled) {
+    background: linear-gradient(180deg, #fb8b8b, #dc2626);
+}
+
+.disabled {
+    cursor: not-allowed !important;
+    color: #7b8aa6 !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(148, 180, 235, 0.12) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 0.75;
+}
+
+/* ---------- 快捷键说明 ---------- */
+.shortcut-info {
+    border: 1px solid var(--line);
+    border-radius: var(--border-radius);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 12px 16px;
+}
+
+.shortcut-info__summary {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--text);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 折叠箭头：纯 CSS 绘制，不用字符图标 */
+.shortcut-info__summary::before {
+    content: "";
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid var(--ice);
+    border-bottom: 2px solid var(--ice);
+    border-radius: 1px;
+    transform: rotate(-45deg) translateY(-1px);
+    transition: var(--transition);
+}
+
+.shortcut-info[open] .shortcut-info__summary::before {
+    transform: rotate(45deg) translateX(-1px);
+}
+
+.shortcut-info__summary::-webkit-details-marker {
+    display: none;
+}
+
+.shortcut-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.shortcut-item {
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--text-dim);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(148, 180, 235, 0.08);
+}
+
+.shortcut-key {
+    display: inline-block;
+    margin: 0 4px;
+    padding: 2px 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ice);
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 6px;
+}
+
+/* ---------- 弹窗 ---------- */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(3, 7, 18, 0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(92vw, 560px);
+    max-height: 86vh;
+    overflow: auto;
+    padding: 26px 24px;
+    border: 1px solid var(--line-strong);
+    border-radius: 18px;
+    background: linear-gradient(180deg, #0f1c38, #080f22);
+    box-shadow: 0 30px 80px rgba(2, 6, 20, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    animation: modalFadeIn 0.24s ease;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translate(-50%, -46%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+.modal-title {
+    color: #fff;
+    letter-spacing: 3px;
+    margin-bottom: 6px;
+}
+
+.close {
+    position: sticky;
+    top: 0;
+    float: right;
+    z-index: 2;
+    width: 32px;
+    height: 32px;
+    margin: -16px -12px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0;
+    line-height: 0;
+    color: var(--text-dim);
+    background: var(--close-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.close::after {
+    content: "";
+    width: 14px;
+    height: 14px;
+    background-color: currentColor;
+    -webkit-mask: var(--icon-close) center / contain no-repeat;
+    mask: var(--icon-close) center / contain no-repeat;
+}
+
+.close:hover {
+    color: #fff;
+    background: rgba(239, 68, 68, 0.85);
+    transform: rotate(90deg);
+}
+
+.center {
+    text-align: center;
+    width: 100%;
+    margin: 16px 0;
+    justify-content: center;
+}
+
+/* 设置弹窗中的表格与编辑表单 */
+.modal-content .results-table {
+    background: rgba(4, 10, 24, 0.5);
+    box-shadow: none;
+}
+
+.modal-content .results-table td {
+    text-align: left;
+    color: var(--text-dim);
+    font-size: 14px;
+}
+
+.modal-content .results-table td:last-child {
+    text-align: right;
+}
+
+.modal-content .results-table input,
+.modal-content .results-table select {
+    width: 100%;
+    text-align: center;
+}
+
+#scoreContext table {
+    margin: 0 auto;
+    border-collapse: separate;
+    border-spacing: 6px 8px;
+    font-size: 14px;
+    color: var(--text-dim);
+}
+
+#scoreContext input {
+    width: 110px;
+    text-align: center;
+}
+
+.modal-content button {
+    min-width: 110px;
+    padding: 11px 22px;
+    margin: 6px;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: #04121f;
+    cursor: pointer;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #7dd3fc, var(--ice));
+    box-shadow: 0 8px 22px rgba(56, 189, 248, 0.32);
+    transition: var(--transition);
+}
+
+.modal-content button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(56, 189, 248, 0.42);
+}
+
+/* 批量编辑表格输入框更紧凑 */
+#batchTable input {
+    width: 100%;
+    text-align: center;
+}
+
+#batchTable tbody tr.is-goalie td {
+    color: var(--goalie-2);
+    background: rgba(245, 165, 36, 0.08);
+}
+
+#batchTable tbody tr.is-goalie td:first-child {
+    box-shadow: inset 3px 0 0 0 var(--goalie);
+}
+
+#batchTable tbody tr.is-goalie input {
+    border-color: rgba(245, 165, 36, 0.55);
+}
+
+/* ---------- 提示条 ---------- */
+#tipModal {
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1001;
+    padding: 12px 34px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: #04210f;
+    background: linear-gradient(180deg, #5ee98b, #22c55e);
+    border-radius: 999px;
+    box-shadow: 0 12px 30px rgba(34, 197, 94, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease, top 0.4s ease;
+}
+
+#tipModal.show {
+    opacity: 1;
+    top: 30px;
+}
+
+/* ---------- 水印 ---------- */
+.watermark {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    z-index: 100000;
+    pointer-events: none;
+    user-select: none;
+    font-size: clamp(80px, 14vw, 190px);
+    font-weight: 800;
+    letter-spacing: 12px;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.045);
+    text-shadow: 0 0 60px rgba(56, 189, 248, 0.05);
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1180px) {
+    .topbar {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 12px;
+    }
+
+    .meta {
+        justify-content: center;
+    }
+
+    .scoreboard {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 820px) {
+    body {
+        padding: 12px 10px 0;
+    }
+
+    /* 顶栏压缩：小屏优先保证阵容与操作区可见 */
+    .topbar {
+        grid-template-columns: 1fr auto;
+        justify-items: stretch;
+        padding: 8px 10px;
+        gap: 6px 8px;
+    }
+
+    .brand {
+        grid-area: 1 / 1 / 2 / 2;
+    }
+
+    .meta {
+        grid-area: 1 / 2 / 2 / 3;
+        justify-content: flex-end;
+        gap: 5px;
+    }
+
+    .scoreboard {
+        grid-area: 2 / 1 / 3 / 3;
+        padding: 3px 10px;
+        gap: 8px;
+    }
+
+    .brand__logo {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        padding: 3px;
+    }
+
+    .brand__title {
+        font-size: 15px;
+    }
+
+    .brand__sub {
+        display: none;
+    }
+
+    #globalTimer {
+        font-size: 28px;
+        padding: 2px 12px;
+        min-width: 0;
+        border-radius: 10px;
+    }
+
+    .scoreboard__score {
+        font-size: 22px;
+    }
+
+    .meta__chip {
+        min-width: 46px;
+        padding: 3px 7px;
+    }
+
+    .meta__label {
+        font-size: 10px;
+    }
+
+    .meta__value {
+        font-size: 14px;
+    }
+
+    .container {
+        grid-template-columns: repeat(auto-fill, minmax(122px, 1fr));
+        gap: 10px;
+    }
+
+    .card {
+        min-height: 126px;
+        padding: 24px 8px 14px;
+    }
+
+    /* 窄卡片上收紧角标，避免与位置徽标重叠或换行 */
+    .card.selected::before,
+    .card.is-goalie::after {
+        font-size: 9px;
+        letter-spacing: 1px;
+        padding: 2px 8px 3px;
+    }
+
+    /* 操作台改为两列网格，小屏高度约减半 */
+    .controls {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        padding: 8px;
+    }
+
+    .controls__group {
+        flex: none;
+        padding: 5px 8px;
+        gap: 6px;
+    }
+
+    .controls__group:nth-child(1) { grid-area: 1 / 1 / 2 / 2; }
+
+    .controls__group:nth-child(2) { grid-area: 2 / 1 / 3 / 3; }
+
+    .controls__group:nth-child(3) { grid-area: 3 / 1 / 4 / 3; }
+
+    .controls__group:nth-child(4) { grid-area: 1 / 2 / 2 / 3; }
+
+    .controls__group:nth-child(5) { grid-area: 4 / 1 / 5 / 3; }
+
+    .controls__label {
+        display: none;
+    }
+
+    .controls button {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 9px 8px;
+        font-size: 13px;
+        border-radius: 10px;
+        white-space: nowrap;
+    }
+
+    .legend__hint {
+        display: none;
+    }
+}
+
+@media (max-width: 520px) {
+    #globalTimer {
+        font-size: 34px;
+        min-width: 0;
+        padding: 4px 10px;
+    }
+
+    .scoreboard {
+        gap: 8px;
+        padding: 6px 10px;
+    }
+
+    .scoreboard__name {
+        font-size: 11px;
+    }
+
+    .container {
+        grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    }
+
+    .number {
+        font-size: 28px;
+    }
+
+    .role {
+        width: 26px;
+        height: 26px;
+        font-size: 13px;
+    }
+
+    .card.selected::before,
+    .card.is-goalie::after {
+        letter-spacing: 0;
+        padding: 2px 6px 3px;
+    }
+
+    .results-table th,
+    .results-table td {
+        padding: 9px 8px;
+        font-size: 13px;
+    }
+}
+
+/* 触屏设备：编辑按钮常显 */
+@media (hover: none) {
+    .edit-button {
+        display: flex;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* =============================================================
+   明亮模式（data-theme="light"）
+   -------------------------------------------------------------
+   仅覆盖配色相关的属性（背景 / 边框 / 文字 / 阴影 / 图标色），
+   不含任何尺寸与布局声明，因此不会影响响应式与交互。
+   ============================================================= */
+[data-theme="light"] {
+    --ice: #0369a1;
+    --ice-glow: rgba(3, 105, 161, 0.28);
+    --text: #0d1b33;
+    --text-dim: #4d6183;
+    --line: rgba(23, 58, 112, 0.14);
+    --line-strong: rgba(23, 58, 112, 0.26);
+    --surface: rgba(255, 255, 255, 0.85);
+    --surface-2: rgba(255, 255, 255, 0.95);
+    --surface-3: #ffffff;
+}
+
+[data-theme="light"] body {
+    color: #0d1b33;
+    background:
+            radial-gradient(1100px 620px at 10% -10%, rgba(56, 189, 248, 0.22), transparent 62%),
+            radial-gradient(900px 560px at 100% 0%, rgba(99, 102, 241, 0.14), transparent 58%),
+            linear-gradient(180deg, #f2f7ff 0%, #e2ecfa 100%);
+}
+
+[data-theme="light"] .rink-bg__circle {
+    border-color: rgba(23, 58, 112, 0.08);
+    box-shadow: inset 0 0 120px rgba(56, 189, 248, 0.07);
+}
+
+[data-theme="light"] .rink-bg__line {
+    background: linear-gradient(180deg, transparent, rgba(23, 58, 112, 0.10), transparent);
+}
+
+/* 顶栏 / 计分牌 */
+[data-theme="light"] .topbar {
+    border-color: var(--line);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 246, 255, 0.92));
+    box-shadow: 0 14px 34px rgba(23, 58, 112, 0.14);
+}
+
+[data-theme="light"] .brand__logo {
+    border-color: var(--line);
+    background: #ffffff;
+}
+
+[data-theme="light"] .brand__title {
+    color: #0b1830;
+}
+
+[data-theme="light"] .brand__sub {
+    color: #5b7095;
+}
+
+[data-theme="light"] .scoreboard {
+    border-color: var(--line);
+    background: #ffffff;
+    box-shadow: inset 0 0 40px rgba(56, 189, 248, 0.08), 0 6px 18px rgba(23, 58, 112, 0.08);
+}
+
+[data-theme="light"] .scoreboard__name {
+    color: #5b7095;
+}
+
+[data-theme="light"] .scoreboard__score {
+    color: #0b1830;
+    text-shadow: none;
+}
+
+[data-theme="light"] .scoreboard__team.is-us {
+    background: rgba(56, 189, 248, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(2, 132, 199, 0.35);
+}
+
+[data-theme="light"] #globalTimer {
+    color: #0b1830;
+    background: linear-gradient(180deg, rgba(56, 189, 248, 0.22), rgba(56, 189, 248, 0.08));
+    border-color: rgba(2, 132, 199, 0.35);
+    text-shadow: none;
+}
+
+[data-theme="light"] #globalTimer.is-urgent {
+    color: #7a3d00;
+    border-color: rgba(217, 119, 6, 0.5);
+    background: linear-gradient(180deg, rgba(245, 165, 36, 0.3), rgba(245, 165, 36, 0.12));
+    text-shadow: none;
+}
+
+[data-theme="light"] #globalTimer.is-final {
+    color: #8c1c1c;
+    border-color: rgba(220, 38, 38, 0.45);
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.24), rgba(239, 68, 68, 0.1));
+}
+
+[data-theme="light"] .runstate {
+    color: #4d6183;
+    background: rgba(23, 58, 112, 0.05);
+}
+
+[data-theme="light"] .runstate.is-running {
+    color: #05230f;
+    background: linear-gradient(180deg, #4ade80, #22c55e);
+}
+
+[data-theme="light"] .meta__chip {
+    background: #ffffff;
+    box-shadow: 0 3px 10px rgba(23, 58, 112, 0.07);
+}
+
+[data-theme="light"] .meta__label {
+    color: #5b7095;
+}
+
+[data-theme="light"] .meta__value {
+    color: #0b1830;
+}
+
+[data-theme="light"] .meta__chip--onice .meta__value {
+    color: #0369a1;
+    text-shadow: none;
+}
+
+[data-theme="light"] .theme-toggle {
+    color: #4d6183;
+    background: #ffffff;
+    box-shadow: 0 3px 10px rgba(23, 58, 112, 0.07);
+}
+
+[data-theme="light"] .theme-toggle:hover {
+    color: #0369a1;
+    background: rgba(56, 189, 248, 0.16);
+    border-color: rgba(2, 132, 199, 0.45);
+}
+
+/* 阵容面板 */
+[data-theme="light"] .board {
+    border-color: var(--line);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(243, 248, 255, 0.88));
+    box-shadow: 0 16px 36px rgba(23, 58, 112, 0.12);
+}
+
+[data-theme="light"] .board__title {
+    color: #0b1830;
+}
+
+[data-theme="light"] .board__title::before {
+    background: linear-gradient(180deg, #38bdf8, #6366f1);
+}
+
+[data-theme="light"] .legend {
+    color: #4d6183;
+}
+
+[data-theme="light"] .legend__item--on i {
+    background: #0ea5e9;
+}
+
+[data-theme="light"] .legend__hint {
+    border-left-color: var(--line);
+}
+
+/* 球员卡片 */
+[data-theme="light"] .card {
+    border-color: var(--line);
+    background: linear-gradient(180deg, #ffffff, #f4f8ff);
+    box-shadow: 0 6px 18px rgba(23, 58, 112, 0.10);
+}
+
+[data-theme="light"] .card:hover {
+    border-color: var(--line-strong);
+    box-shadow: 0 14px 28px rgba(23, 58, 112, 0.16);
+}
+
+[data-theme="light"] .number {
+    color: #0b1830;
+    text-shadow: none;
+}
+
+[data-theme="light"] .role {
+    color: #4d6183;
+    background: rgba(23, 58, 112, 0.06);
+    border-color: var(--line);
+    box-shadow: none;
+}
+
+[data-theme="light"] .timer {
+    color: #17325c;
+    background: rgba(23, 58, 112, 0.06);
+}
+
+[data-theme="light"] .card.selected {
+    border-color: rgba(2, 132, 199, 0.7);
+    background: linear-gradient(180deg, rgba(56, 189, 248, 0.26), rgba(56, 189, 248, 0.08));
+    box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.28), 0 12px 26px rgba(2, 132, 199, 0.16);
+}
+
+[data-theme="light"] .card.selected .timer {
+    color: #06283d;
+    background: rgba(255, 255, 255, 0.72);
+}
+
+[data-theme="light"] .card.selected::before {
+    color: #04283f;
+    background: linear-gradient(180deg, #7dd3fc, #0ea5e9);
+}
+
+[data-theme="light"] .card.is-goalie {
+    border-color: rgba(217, 119, 6, 0.75);
+    background: linear-gradient(180deg, rgba(245, 165, 36, 0.26), rgba(245, 165, 36, 0.08));
+    box-shadow: inset 4px 0 0 0 #d97706, 0 10px 24px rgba(217, 119, 6, 0.16);
+}
+
+[data-theme="light"] .card.is-goalie .number {
+    color: #a15200;
+    text-shadow: none;
+}
+
+[data-theme="light"] .card.is-goalie .timer {
+    color: #7a3d00;
+    background: rgba(255, 255, 255, 0.72);
+}
+
+[data-theme="light"] .card.is-goalie.selected {
+    border-color: #d97706;
+    background: linear-gradient(180deg, rgba(245, 165, 36, 0.3), rgba(56, 189, 248, 0.12));
+    box-shadow: inset 4px 0 0 0 #d97706, 0 0 0 1px rgba(2, 132, 199, 0.3),
+    0 12px 26px rgba(217, 119, 6, 0.2);
+}
+
+[data-theme="light"] .edit-button {
+    background: #ffffff;
+    border-color: var(--line);
+    color: #0369a1;
+}
+
+[data-theme="light"] .edit-button:hover {
+    color: #ffffff;
+    background: #0ea5e9;
+    border-color: transparent;
+}
+
+/* 结果区 */
+[data-theme="light"] .panel {
+    border-color: var(--line);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(243, 248, 255, 0.88));
+    box-shadow: 0 16px 36px rgba(23, 58, 112, 0.12);
+}
+
+[data-theme="light"] .panel__title {
+    color: #0b1830;
+}
+
+[data-theme="light"] .goal-entry {
+    color: #4d6183;
+    background: #ffffff;
+    border-color: var(--line);
+    border-left-color: #0ea5e9;
+}
+
+[data-theme="light"] .goal-entry:hover {
+    background: rgba(56, 189, 248, 0.12);
+}
+
+[data-theme="light"] .goal-entry strong {
+    color: #0b1830;
+}
+
+[data-theme="light"] .results-table {
+    background: #ffffff;
+    border-color: var(--line);
+    box-shadow: 0 16px 36px rgba(23, 58, 112, 0.12);
+}
+
+[data-theme="light"] .results-table th {
+    color: #0b1830;
+    background: rgba(56, 189, 248, 0.16);
+    border-bottom-color: var(--line-strong);
+}
+
+[data-theme="light"] .results-table th,
+[data-theme="light"] .results-table td {
+    border-bottom-color: rgba(23, 58, 112, 0.10);
+}
+
+[data-theme="light"] .results-table tbody tr:nth-child(even) td {
+    background: rgba(23, 58, 112, 0.03);
+}
+
+[data-theme="light"] .results-table tbody tr:hover td {
+    background: rgba(56, 189, 248, 0.14);
+}
+
+[data-theme="light"] .results-table tbody tr.is-goalie td:first-child,
+[data-theme="light"] .results-table tbody tr.is-goalie td:nth-child(2) {
+    color: #a15200;
+}
+
+[data-theme="light"] .modal-content .results-table {
+    background: #ffffff;
+}
+
+[data-theme="light"] .modal-content .results-table td {
+    color: #4d6183;
+}
+
+/* 表单控件 */
+[data-theme="light"] input,
+[data-theme="light"] select {
+    color: #0b1830;
+    background: #ffffff;
+    border-color: var(--line);
+}
+
+[data-theme="light"] select option {
+    color: #0b1830;
+    background: #ffffff;
+}
+
+/* 操作台 */
+[data-theme="light"] .controls {
+    border-color: var(--line);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(240, 246, 255, 0.97));
+    box-shadow: 0 -10px 30px rgba(23, 58, 112, 0.14);
+}
+
+[data-theme="light"] .controls__group {
+    border-color: var(--line);
+    background: rgba(23, 58, 112, 0.035);
+}
+
+[data-theme="light"] .controls__group--run {
+    border-color: rgba(2, 132, 199, 0.3);
+    background: rgba(56, 189, 248, 0.12);
+}
+
+[data-theme="light"] .controls__group--data {
+    border-color: rgba(220, 38, 38, 0.18);
+}
+
+[data-theme="light"] .controls__label {
+    color: #5b7095;
+}
+
+[data-theme="light"] .controls button:not(.success):not(.accent):not(.danger) {
+    color: #17325c;
+    background: linear-gradient(180deg, #ffffff, #eef4fd);
+    border-color: var(--line-strong);
+}
+
+[data-theme="light"] .controls button:hover:not(.disabled) {
+    border-color: #0ea5e9;
+    box-shadow: 0 8px 18px rgba(23, 58, 112, 0.14), 0 0 0 1px rgba(2, 132, 199, 0.3);
+}
+
+[data-theme="light"] .controls button.secondary {
+    color: #17325c;
+}
+
+[data-theme="light"] .disabled {
+    color: #93a3bd !important;
+    background: rgba(23, 58, 112, 0.05) !important;
+    border-color: rgba(23, 58, 112, 0.10) !important;
+}
+
+/* 快捷键说明 */
+[data-theme="light"] .shortcut-info {
+    border-color: var(--line);
+    background: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .shortcut-info__summary {
+    color: #0b1830;
+}
+
+[data-theme="light"] .shortcut-item {
+    color: #4d6183;
+    background: #ffffff;
+    border-color: rgba(23, 58, 112, 0.08);
+}
+
+[data-theme="light"] .shortcut-key {
+    color: #0369a1;
+    background: rgba(56, 189, 248, 0.16);
+    border-color: rgba(2, 132, 199, 0.3);
+}
+
+/* 弹窗 */
+[data-theme="light"] .modal {
+    background: rgba(23, 46, 84, 0.42);
+}
+
+[data-theme="light"] .modal-content {
+    border-color: var(--line-strong);
+    background: linear-gradient(180deg, #ffffff, #f4f8ff);
+    box-shadow: 0 30px 70px rgba(23, 58, 112, 0.28);
+}
+
+[data-theme="light"] .modal-title {
+    color: #0b1830;
+}
+
+[data-theme="light"] .close {
+    color: #4d6183;
+    background: #ffffff;
+}
+
+[data-theme="light"] .close:hover {
+    color: #ffffff;
+    background: #ef4444;
+}
+
+[data-theme="light"] .modal-content button {
+    color: #04283f;
+    background: linear-gradient(180deg, #7dd3fc, #0ea5e9);
+    box-shadow: 0 8px 20px rgba(2, 132, 199, 0.28);
+}
+
+[data-theme="light"] #scoreContext table {
+    color: #4d6183;
+}
+
+[data-theme="light"] #batchTable tbody tr.is-goalie td {
+    color: #a15200;
+    background: rgba(245, 165, 36, 0.14);
+}
+
+[data-theme="light"] #batchTable tbody tr.is-goalie input {
+    border-color: rgba(217, 119, 6, 0.5);
+}
+
+/* 水印与提示条 */
+[data-theme="light"] .watermark {
+    color: rgba(23, 58, 112, 0.06);
+    text-shadow: none;
+}
+
+[data-theme="light"] #tipModal {
+    color: #04210f;
+    box-shadow: 0 12px 30px rgba(34, 197, 94, 0.28);
+}
